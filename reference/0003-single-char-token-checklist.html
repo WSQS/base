@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0003 · 单字符 token 扩展清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0003</div>
+    <h1>单字符 token 扩展清单</h1>
+    <p>用途：在现有扫描器上增量添加单字符运算符 token 时，快速检查你忘了哪一步。</p>
+
+    <h2>当前 token 种类</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>已支持</h3>
+        <ul>
+          <li><code>Number(i64)</code></li>
+          <li><code>Plus</code>（本课新增）</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>后续再做</h3>
+        <ul>
+          <li><code>Minus</code></li>
+          <li><code>Star</code></li>
+          <li><code>Slash</code></li>
+          <li>括号、等号、分号</li>
+          <li>标识符、关键字</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>增量添加单字符 token 的标准步骤</h2>
+    <pre><code>1. 在 enum Token 里加新变体（如 Plus）
+2. 在扫描循环里，加一个新的字符匹配分支
+3. 遇到新字符时，先结束当前正在累计的 NUMBER
+4. 推入新 token
+5. 重置累计状态</code></pre>
+
+    <h2>必须处理的细节</h2>
+    <ul>
+      <li>新 token 前后的空白应该被正确跳过</li>
+      <li>新 token 之前的 NUMBER 不能被丢���</li>
+      <li>新 token 之后的 NUMBER 不能丢失</li>
+      <li>连续出现多个 Plus 时，每个都应输出独立 token</li>
+    </ul>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>"12 + 34"</code> → <code>Number(12)</code>, <code>Plus</code>, <code>Number(34)</code></li>
+      <li><code>"7+42"</code> → <code>Number(7)</code>, <code>Plus</code>, <code>Number(42)</code></li>
+      <li><code>"7 + 42 + 900"</code> → 5 个 token，顺序正确</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0003-single-char-token-checklist.html</code></p>
+  </main>
+</body>
+</html>
