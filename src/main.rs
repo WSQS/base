@@ -36,3 +36,11 @@ fn scan(input: &String) -> Vec<Token> {
     }
     result
 }
+
+#[test]
+fn test_number_values() {
+    let tokens = scan(&"12 34  5".to_string());
+    assert!(matches!(tokens[0], Token::Number(12)));
+    assert!(matches!(tokens[1], Token::Number(34)));
+    assert!(matches!(tokens[2], Token::Number(5)));
+}
