@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0002 · 亲手实现只支持数字的最小扫描器</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.15rem; margin: 0 0 10px; }
+    h2 { font-size: 1.35rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.06rem; margin-bottom: 20px; }
+    .box, .exercise, .practice-step {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .practice-step { background: #fff; }
+    .goal { background: #eff6ff; }
+    .exercise { margin-top: 22px; }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .checklist li { margin-bottom: 8px; }
+    .footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0002</div>
+    <h1>亲手实现只支持数字的最小扫描器</h1>
+    <p class="lede">这一课只教一件事：把“字符串输入”变成 `NUMBER` token 输出。你不会一次实现完整 lexer，只会亲手搭起最小第一步。</p>
+
+    <section class="box goal">
+      <strong>和你的 mission 的关系：</strong>
+      你要亲手实现自己的语言。真正的入口不是先讨论全部语法，而是先实现一个极小但真实的扫描器：输入文本，输出 token。今天只做数字，建立第一块可运行的地基。
+    </section>
+
+    <section>
+      <h2>今天只做这一件事</h2>
+      <ul class="checklist">
+        <li>输入：一段只包含整数字面量和空白的文本</li>
+        <li>输出：按顺序得到一串 <code>NUMBER</code> token</li>
+        <li>暂时不做：<code>+</code>、标识符、关键字、括号、报错体系</li>
+      </ul>
+      <div class="box">
+        <strong>目标输入 / 输出示例：</strong>
+        <pre><code>输入:  12  7 900
+输出: NUMBER(12)
+      NUMBER(7)
+      NUMBER(900)</code></pre>
+      </div>
+    </section>
+
+    <section>
+      <h2>你要亲手完成的最小程序</h2>
+      <p>请你自己创建一个最小 Rust 程序，并让它完成下面的行为：</p>
+      <pre><code>1. 读取一个字符串
+2. 从左到右扫描字符
+3. 跳过空白
+4. 如果遇到数字，就继续向后读，直到不是数字为止
+5. 把这一段数字输出成 NUMBER(...)</code></pre>
+      <p>你现在不需要设计通用架构，只需要把这个最小逻辑跑通。</p>
+    </section>
+
+    <section class="practice-step">
+      <h2>实践步骤</h2>
+      <h3>Step 1</h3>
+      <p>先新建一个 Rust 小程序，并把输入先写死成：</p>
+      <pre><code>"123"</code></pre>
+
+      <h3>Step 2</h3>
+      <p>让程序输出：</p>
+      <pre><code>NUMBER(123)</code></pre>
+
+      <h3>Step 3</h3>
+      <p>把输入改成：</p>
+      <pre><code>"7 42 900"</code></pre>
+      <p>再扩展逻辑，要求输出三行 token。</p>
+
+      <h3>Step 4</h3>
+      <p>确认程序能跳过多个空格，而不是只处理一个空格。</p>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：你应该输出什么？</h2>
+      <p>如果输入是 <code>"88 5 701"</code>，正确输出应该是哪一项？</p>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. <code>NUMBER(88 5 701)</code></label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. <code>NUMBER(88)</code>, <code>NUMBER(5)</code>, <code>NUMBER(701)</code></label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. <code>NUMBER(885701)</code></label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：你漏掉了哪一步？</h2>
+      <p>如果你的程序只能处理 <code>"7 42"</code>，但遇到 <code>"7   42"</code> 就出错，最可能缺了什么？</p>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 缺少“持续跳过空白”的循环</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 缺少 AST</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 缺少 LLVM</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：贴出你的程序输出</h2>
+      <p>当你用输入 <code>"12 34 5"</code> 运行你自己的程序后，把你的实际输出粘贴到下面，和目标对比。</p>
+      <textarea id="self-check" placeholder="例如：&#10;NUMBER(12)&#10;NUMBER(34)&#10;NUMBER(5)"></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照目标输出</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <p>如果你已经自己写出一个 Rust 程序，并且它对下面输入给出正确输出，这节课就完成了：</p>
+      <pre><code>输入:  "12 34 5"
+输出: NUMBER(12)
+      NUMBER(34)
+      NUMBER(5)</code></pre>
+    </section>
+
+    <section>
+      <h2>卡住时优先检查这 3 件事</h2>
+      <ul class="checklist">
+        <li>是不是只读了一个字符，而没有持续读取整个数字？</li>
+        <li>是不是没有循环跳过多个空白？</li>
+        <li>是不是读完一个数字后，没有继续扫描后面的字符？</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://craftinginterpreters.com/scanning.html" target="_blank" rel="noreferrer">Crafting Interpreters — Scanning</a>：扫描器的核心职责与增量实现方式。</li>
+      </ul>
+      <p>如果你在自己实现时卡住，可以继续问我。我不会直接替你把整段程序做完，但我会继续像老师一样拆解你卡住的那一步。</p>
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0002-build-a-number-only-scanner.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) {
+        setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>');
+        return;
+      }
+      if (answer.value === 'b') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> 这里有 3 个独立数字，因此应该输出 3 个 <code>NUMBER</code> token，而不是拼成一个。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 扫描器要按数字片段切分。空白是分隔，不是数字的一部分。');
+      }
+    }
+
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((input) => { input.checked = false; });
+      clearFeedback('feedback-1');
+    }
+
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) {
+        setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>');
+        return;
+      }
+      if (answer.value === 'a') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 这一步的核心不是 AST 或 LLVM，而是把“跳过空白”写成能连续前进的扫描逻辑。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 当前问题还停留在最基础的字符扫描阶段。');
+      }
+    }
+
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((input) => { input.checked = false; });
+      clearFeedback('feedback-2');
+    }
+
+    function normalize(text) {
+      return text.replace(/\r/g, '').trim();
+    }
+
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      const expected = 'NUMBER(12)\nNUMBER(34)\nNUMBER(5)';
+      if (!value) {
+        setFeedback('feedback-3', false, '<strong>先贴入你的输出。</strong>');
+        return;
+      }
+      if (value === expected) {
+        setFeedback('feedback-3', true, '<strong>输出匹配。</strong> 说明你的最小数字扫描器已经跑通了今天的目标。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还没对齐目标输出。</strong> 目标应该是 3 行：<code>NUMBER(12)</code>、<code>NUMBER(34)</code>、<code>NUMBER(5)</code>。优先检查：是否正确跳过空白，是否每读完一个数字后继续向后扫描。');
+      }
+    }
+
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>
