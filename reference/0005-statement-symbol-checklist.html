@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0005 · 语句基础符号清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0005</div>
+    <h1>语句基础符号清单</h1>
+    <p>用途：在现有扫描器上继续加入 <code>(</code>、<code>)</code>、<code>=</code>、<code>;</code> 时，快速检查你是否漏掉了某个 token 或某个测试场景。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应支持</h2>
+        <ul>
+          <li><code>LParen</code> → <code>(</code></li>
+          <li><code>RParen</code> → <code>)</code></li>
+          <li><code>Equal</code> → <code>=</code></li>
+          <li><code>Semicolon</code> → <code>;</code></li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不做</h2>
+        <ul>
+          <li>标识符</li>
+          <li>关键字 <code>let</code> / <code>print</code></li>
+          <li>多字符运算符</li>
+          <li>语法规则</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>固定扩展流程</h2>
+    <pre><code>1. 在 enum Token 中加入新变体
+2. 在扫描循环中匹配新字符
+3. 先结束当前 Number
+4. 推入新 token
+5. 继续扫描后续字符</code></pre>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>"(12 + 3) = 15;"</code> → 8 个 token，顺序完整</li>
+      <li><code>"(7+8);"</code> → 无空格也能正确切分</li>
+      <li><code>"(1+2)*(3-4);"</code> → 新旧 token 混合时都能保持顺序</li>
+    </ul>
+
+    <h2>最容易遗漏的点</h2>
+    <ul>
+      <li>新增分支时忘了先收尾当前 Number</li>
+      <li>加了 enum 变体，但没加扫描分支</li>
+      <li>有空格输入能过，但无空格输入没测到</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0005-statement-symbol-checklist.html</code></p>
+  </main>
+</body>
+</html>

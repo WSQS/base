@@ -7,6 +7,10 @@ enum Token {
     Minus,
     Star,
     Slash,
+    LParen,
+    RParen,
+    Equal,
+    Semicolon,
 }
 
 fn main() {
@@ -50,6 +54,18 @@ fn scan(input: &str) -> Vec<Token> {
         } else if c == '/' {
             flush();
             result.push(Token::Slash)
+        } else if c == '(' {
+            flush();
+            result.push(Token::LParen)
+        } else if c == ')' {
+            flush();
+            result.push(Token::RParen)
+        } else if c == '=' {
+            flush();
+            result.push(Token::Equal)
+        } else if c == ';' {
+            flush();
+            result.push(Token::Semicolon)
         } else {
             println!("Not support char:\"{c}\"")
         }
@@ -89,5 +105,17 @@ mod tests {
         assert!(matches!(tokens[4], Token::Number(4)));
         assert!(matches!(tokens[5], Token::Slash));
         assert!(matches!(tokens[6], Token::Number(2)));
+    }
+    #[test]
+    fn test_statement_symbols() {
+        let tokens = scan("(12+3)=15;");
+        assert!(matches!(tokens[0], Token::LParen));
+        assert!(matches!(tokens[1], Token::Number(12)));
+        assert!(matches!(tokens[2], Token::Plus));
+        assert!(matches!(tokens[3], Token::Number(3)));
+        assert!(matches!(tokens[4], Token::RParen));
+        assert!(matches!(tokens[5], Token::Equal));
+        assert!(matches!(tokens[6], Token::Number(15)));
+        assert!(matches!(tokens[7], Token::Semicolon));
     }
 }
