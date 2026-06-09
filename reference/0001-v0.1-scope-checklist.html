@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0001 · v0.1 范围判断清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+      --later-bg: #fff7ed;
+      --later-fg: #9a3412;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    .good { background: var(--good-bg); color: var(--good-fg); }
+    .later { background: var(--later-bg); color: var(--later-fg); }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f9fafb; }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0001</div>
+    <h1>v0.1 范围判断清单</h1>
+    <p>用途：快速判断一个语言功能，应该放进第一版原型，还是留到以后再做。</p>
+
+    <div class="grid">
+      <section class="card good">
+        <h2>应该进 v0.1</h2>
+        <ul>
+          <li>数字字面量</li>
+          <li>标识符</li>
+          <li>四则运算：<code>+ - * /</code></li>
+          <li>括号</li>
+          <li>变量定义：<code>let name = expr;</code></li>
+          <li>输出：<code>print expr;</code></li>
+        </ul>
+      </section>
+      <section class="card later">
+        <h2>留到以后再做</h2>
+        <ul>
+          <li><code>if</code> / <code>while</code></li>
+          <li>函数</li>
+          <li>类型系统</li>
+          <li>模块系统</li>
+          <li>泛型</li>
+          <li>字节码 / JIT / 优化器</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>判断规则</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>如果一个功能…</th>
+          <th>判断</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>能帮助你尽快打通 “源码 → token → AST → 执行”</td>
+          <td>优先进入 v0.1</td>
+        </tr>
+        <tr>
+          <td>会引入全新的执行模型或复杂语义</td>
+          <td>延后</td>
+        </tr>
+        <tr>
+          <td>没有它就无法写出最小可运行程序</td>
+          <td>优先进入 v0.1</td>
+        </tr>
+        <tr>
+          <td>只是为了“更强大”或“更像大语言”</td>
+          <td>延后</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>最小示例程序</h2>
+    <p>如果你的语言已经能运行下面这样的程序，说明 v0.1 范围是合理的：</p>
+    <p><code>let x = 10; let y = x * 2 + 1; print y;</code></p>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0001-v0.1-scope-checklist.html</code></p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0001 · 判断你的语言 v0.1 范围</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --bad-bg: #fff7ed;
+      --bad-line: #fdba74;
+      --bad-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 960px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.2rem; margin: 0 0 10px; }
+    h2 { font-size: 1.35rem; margin-top: 2rem; }
+    p, li, label, button { font-size: 1rem; }
+    .lede { color: var(--muted); font-size: 1.06rem; margin-bottom: 20px; }
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .box strong { color: #111827; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    .exercise {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+      background: #ffffff;
+    }
+    .choices {
+      display: grid;
+      gap: 12px;
+      margin: 14px 0 18px;
+    }
+    .choice {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: #fafafa;
+    }
+    .choice input { margin-right: 10px; }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .primary {
+      background: var(--accent);
+      color: white;
+    }
+    .secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .feedback {
+      display: none;
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good {
+      display: block;
+      background: var(--good-bg);
+      border-color: var(--good-line);
+      color: var(--good-text);
+    }
+    .feedback.bad {
+      display: block;
+      background: var(--bad-bg);
+      border-color: var(--bad-line);
+      color: var(--bad-text);
+    }
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 10px;
+    }
+    .panel {
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: #fafcff;
+    }
+    .footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+      .split { grid-template-columns: 1fr; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0001</div>
+    <h1>判断你的语言 v0.1 范围</h1>
+    <p class="lede">这一课只训练一个技能：判断一个语言功能，是否应该进入你的第一版原型。</p>
+
+    <section class="box">
+      <strong>和你的目标的关系：</strong>
+      你的任务不是设计一门“大而全”的语言，而是先亲手实现一个最小可用原型。要做到这一点，你必须先学会压缩范围，只保留最小闭环所需的功能。
+    </section>
+
+    <section>
+      <h2>你只需要记住 3 条规则</h2>
+      <div class="split">
+        <div class="panel">
+          <h3>应该进 v0.1 的功能</h3>
+          <ul>
+            <li>能帮助你尽快打通 <code>源码 → token → AST → 执行</code></li>
+            <li>没有它，就写不出最小可运行程序</li>
+            <li>语义直观，容易解释“运行时发生了什么”</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>应该延后的功能</h3>
+          <ul>
+            <li>引入全新执行模型或明显增加复杂度</li>
+            <li>只是为了更强大、更完整、更像成熟语言</li>
+            <li>现在不做，也不妨碍你完成最小闭环</li>
+          </ul>
+        </div>
+      </div>
+      <p>对于你的第一门语言，推荐的 v0.1 范围通常是：数字、标识符、<code>+ - * /</code>、括号、<code>let</code>、<code>print</code>。</p>
+    </section>
+
+    <section class="exercise" id="exercise-1">
+      <h2>互动练习 1：选出应该进入 v0.1 的功能</h2>
+      <p>请选择 <strong>4 项</strong> 你应该现在就做的功能。</p>
+      <div class="choices">
+        <label class="choice"><input type="checkbox" name="scope" value="arith" />数字四则运算</label>
+        <label class="choice"><input type="checkbox" name="scope" value="let" />变量定义 <code>let name = expr;</code></label>
+        <label class="choice"><input type="checkbox" name="scope" value="print" />输出 <code>print expr;</code></label>
+        <label class="choice"><input type="checkbox" name="scope" value="ident" />标识符引用</label>
+        <label class="choice"><input type="checkbox" name="scope" value="if" /><code>if</code> 条件分支</label>
+        <label class="choice"><input type="checkbox" name="scope" value="generic" />泛型</label>
+        <label class="choice"><input type="checkbox" name="scope" value="jit" />JIT</label>
+        <label class="choice"><input type="checkbox" name="scope" value="module" />模块系统</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkExercise1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetExercise1()">重做这题</button>
+      </div>
+      <div class="feedback" id="feedback-1"></div>
+    </section>
+
+    <section class="exercise" id="exercise-2">
+      <h2>互动练习 2：判断这个版本是否超范围</h2>
+      <p>看下面这个“第一版计划”，判断它是否适合当作你的 v0.1。</p>
+      <pre><code>支持数字、变量、print、if、while、函数、模块、静态类型检查</code></pre>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="plan-check" value="too-big" />不适合，它超出了 v0.1 的合理范围</label>
+        <label class="choice"><input type="radio" name="plan-check" value="good" />适合，这正是第一版该有的内容</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkExercise2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetExercise2()">重做这题</button>
+      </div>
+      <div class="feedback" id="feedback-2"></div>
+    </section>
+
+    <section class="exercise" id="exercise-3">
+      <h2>互动练习 3：完成一个最小示例判断</h2>
+      <p>下面哪个程序，更像是适合 v0.1 的目标程序？</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="program-check" value="a" />A. <code>let x = 10; let y = x * 2 + 1; print y;</code></label>
+        <label class="choice"><input type="radio" name="program-check" value="b" />B. <code>module math; generic fn area&lt;T&gt;(x: T) -&gt; T { ... }</code></label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkExercise3()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetExercise3()">重做这题</button>
+      </div>
+      <div class="feedback" id="feedback-3"></div>
+    </section>
+
+    <section class="box">
+      <strong>你学会了什么：</strong>
+      如果你现在能稳定做出这个判断——“这个功能是闭环必需，还是复杂度膨胀”——那你就掌握了第一课的目标技能。
+    </section>
+
+    <section>
+      <h2>继续提问</h2>
+      <p>如果你在某个功能上犹豫，比如 <code>if</code>、函数、布尔值要不要进 v0.1，直接继续问我。我会继续当你的老师，和你一起做范围判断。</p>
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://craftinginterpreters.com/" target="_blank" rel="noreferrer">Crafting Interpreters</a>：适合从最小解释器开始，而不是一开始就追求大而全。</li>
+        <li><a href="https://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/" target="_blank" rel="noreferrer">Pratt Parsers: Expression Parsing Made Easy</a>：后续扩展表达式语法时可用。</li>
+        <li><a href="https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing" target="_blank" rel="noreferrer">Parsing Expressions by Precedence Climbing</a>：理解表达式优先级时可参考。</li>
+      </ul>
+    </section>
+
+    <p class="footer">
+      打开 lesson：<code>start .\lessons\0001-choose-and-build-a-tiny-language.html</code><br />
+      打开参考页：<code>start .\reference\0001-v0.1-scope-checklist.html</code>
+    </p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+
+    function checkExercise1() {
+      const checked = Array.from(document.querySelectorAll('input[name="scope"]:checked')).map((i) => i.value).sort();
+      const expected = ['arith', 'ident', 'let', 'print'];
+      const sameLength = checked.length === expected.length;
+      const sameItems = sameLength && expected.every((item, idx) => item === checked[idx]);
+
+      if (sameItems) {
+        setFeedback('feedback-1', true,
+          '<strong>判断正确。</strong> 这 4 项正好构成了最小闭环：表达式、名字绑定、名字引用、结果输出。像 <code>if</code>、模块、泛型、JIT 都会把第一版做重。');
+      } else {
+        setFeedback('feedback-1', false,
+          '<strong>还不对。</strong> v0.1 应该优先保留“最小闭环必需功能”。推荐答案是：数字四则运算、变量定义、输出、标识符引用。其余几项都适合延后。');
+      }
+    }
+
+    function resetExercise1() {
+      document.querySelectorAll('input[name="scope"]').forEach((input) => { input.checked = false; });
+      clearFeedback('feedback-1');
+    }
+
+    function checkExercise2() {
+      const answer = document.querySelector('input[name="plan-check"]:checked');
+      if (!answer) {
+        setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>');
+        return;
+      }
+
+      if (answer.value === 'too-big') {
+        setFeedback('feedback-2', true,
+          '<strong>判断正确。</strong> 这个计划把 <code>if</code>、<code>while</code>、函数、模块、静态类型检查都塞进了第一版，已经明显超过“尽快闭环”的目标。');
+      } else {
+        setFeedback('feedback-2', false,
+          '<strong>判断错误。</strong> 这个版本过大。第一版最重要的是尽快跑通，不是一次把控制流、抽象能力和类型系统全做完。');
+      }
+    }
+
+    function resetExercise2() {
+      document.querySelectorAll('input[name="plan-check"]').forEach((input) => { input.checked = false; });
+      clearFeedback('feedback-2');
+    }
+
+    function checkExercise3() {
+      const answer = document.querySelector('input[name="program-check"]:checked');
+      if (!answer) {
+        setFeedback('feedback-3', false, '<strong>先选一个答案。</strong>');
+        return;
+      }
+
+      if (answer.value === 'a') {
+        setFeedback('feedback-3', true,
+          '<strong>判断正确。</strong> A 只依赖数字、表达式、变量和 <code>print</code>，非常适合作为第一版的目标程序。B 则已经需要模块、泛型、函数和类型系统。');
+      } else {
+        setFeedback('feedback-3', false,
+          '<strong>判断错误。</strong> B 需要太多额外机制，不适合 v0.1。第一版目标程序应该尽量像 A 一样，短小但完整。');
+      }
+    }
+
+    function resetExercise3() {
+      document.querySelectorAll('input[name="program-check"]').forEach((input) => { input.checked = false; });
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>
