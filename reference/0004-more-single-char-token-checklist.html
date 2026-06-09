@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0004 · 更多单字符运算符清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0004</div>
+    <h1>更多单字符运算符清单</h1>
+    <p>用途：在现有 `Number` + `Plus` 扫描器上继续加入 `Minus`、`Star`、`Slash` 时，快速检查你是否漏了关键步骤。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应支持</h2>
+        <ul>
+          <li><code>Number(i64)</code></li>
+          <li><code>Plus</code></li>
+          <li><code>Minus</code></li>
+          <li><code>Star</code></li>
+          <li><code>Slash</code></li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不做</h2>
+        <ul>
+          <li>括号</li>
+          <li>等号、分号</li>
+          <li>标识符</li>
+          <li>关键字</li>
+          <li>复杂错误恢复</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>每增加一个单字符 token 的固定流程</h2>
+    <pre><code>1. 在 enum Token 中添加新变体
+2. 在扫描循环中匹配新字符
+3. 先结束当前正在累计的 Number
+4. 推入对应 token
+5. 继续向后扫描</code></pre>
+
+    <h2>最容易重复的逻辑</h2>
+    <ul>
+      <li>遇到分隔或运算符时，把当前 Number 推入结果</li>
+      <li>把 value 重置为 0</li>
+      <li>把 has_value 重置为 false</li>
+    </ul>
+    <p>如果这三步在多个分支里反复出现，说明你已经接近下一次小重构时机。</p>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>"12 - 3 * 4 / 2"</code> → 按顺序输出 7 个 token</li>
+      <li><code>"7+8*9-2/1"</code> → 无空格也能正确切分</li>
+      <li><code>"10 / 2 + 3"</code> → 混合旧 token 与新 token 时顺序正确</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0004-more-single-char-token-checklist.html</code></p>
+  </main>
+</body>
+</html>
