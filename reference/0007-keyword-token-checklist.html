@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0007 · 关键字识别清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0007</div>
+    <h1>关键字识别清单</h1>
+    <p>用途：在现有标识符扫描器上加入 <code>let</code> / <code>print</code> 关键字识别时，快速检查你是否维持了正确的扫描顺序。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应支持</h2>
+        <ul>
+          <li><code>Let</code></li>
+          <li><code>Print</code></li>
+          <li><code>Ident(String)</code></li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不做</h2>
+        <ul>
+          <li>更多关键字</li>
+          <li>关键字表抽象优化</li>
+          <li>parser 语句解析</li>
+          <li>复杂标识符规则</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>关键原则</h2>
+    <pre><code>1. 先把整个名字读完整
+2. 再判断它是不是关键字
+3. 如果是保留字，输出专门 token
+4. 否则输出 Ident(...)</code></pre>
+
+    <h2>为什么不能过早判断</h2>
+    <p>因为要遵守 maximal munch：能匹配更长的名字时，优先把它读完整。否则像 <code>printfoo</code> 会被错误切成 <code>Print</code> + <code>Ident("foo")</code>。</p>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>"let x = 12;"</code> → <code>Let</code>, <code>Ident("x")</code>, <code>Equal</code>, <code>Number(12)</code>, <code>Semicolon</code></li>
+      <li><code>"print foo;"</code> → <code>Print</code>, <code>Ident("foo")</code>, <code>Semicolon</code></li>
+      <li><code>"printfoo"</code> → 应该是单个 <code>Ident("printfoo")</code></li>
+    </ul>
+
+    <h2>最容易犯的 3 个错误</h2>
+    <ul>
+      <li>把 <code>let</code>、<code>print</code> 仍然输出成普通 <code>Ident</code></li>
+      <li>过早识别关键字，错误切分更长的标识符</li>
+      <li>关键字能识别，但普通名字反而失效</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0007-keyword-token-checklist.html</code></p>
+  </main>
+</body>
+</html>

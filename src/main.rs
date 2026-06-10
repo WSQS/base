@@ -12,6 +12,8 @@ enum Token {
     Semicolon,
     Number(i64),
     Ident(String),
+    Print,
+    Let,
 }
 
 fn main() {
@@ -37,7 +39,13 @@ fn scan(input: &str) -> Vec<Token> {
                         value.parse::<i64>().expect("Parse int failed"),
                     ));
                 } else {
-                    result.push(Token::Ident(value.clone()));
+                    if value == "let" {
+                        result.push(Token::Let);
+                    } else if value == "print" {
+                        result.push(Token::Print);
+                    } else {
+                        result.push(Token::Ident(value.clone()));
+                    }
                 }
                 value = "".to_string();
             }
@@ -139,6 +147,19 @@ mod tests {
         assert!(matches!(tokens[4], Token::RParen));
         assert!(matches!(tokens[5], Token::Equal));
         assert!(matches!(&tokens[6], Token::Ident(name) if name == "bar"));
+        assert!(matches!(tokens[7], Token::Semicolon));
+    }
+
+    #[test]
+    fn test_keyword() {
+        let tokens = scan("let x = 1; print x;");
+        assert!(matches!(tokens[0], Token::Let));
+        assert!(matches!(&tokens[1], Token::Ident(name) if name == "x"));
+        assert!(matches!(tokens[2], Token::Equal));
+        assert!(matches!(tokens[3], Token::Number(1)));
+        assert!(matches!(tokens[4], Token::Semicolon));
+        assert!(matches!(tokens[5], Token::Print));
+        assert!(matches!(&tokens[6], Token::Ident(name) if name == "x"));
         assert!(matches!(tokens[7], Token::Semicolon));
     }
 }

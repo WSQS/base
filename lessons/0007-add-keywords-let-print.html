@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0007 · 把 let 和 print 从名字中区分出来</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.15rem; margin: 0 0 10px; }
+    h2 { font-size: 1.35rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.06rem; margin-bottom: 20px; }
+    .box, .exercise {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .goal { background: #eff6ff; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    .steps { counter-reset: step; list-style: none; padding-left: 0; }
+    .steps li { counter-increment: step; margin-bottom: 10px; padding-left: 28px; position: relative; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 22px;
+    }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0007</div>
+    <h1>把 <code>let</code> 和 <code>print</code> 从名字中区分出来</h1>
+    <p class="lede">这一课只教一件事：当扫描器读到一个名字后，判断它是普通标识符，还是 Phase 0 里的保留关键字。</p>
+
+    <section class="box goal">
+      <strong>和你的 mission 的关系：</strong>
+      你已经让扫描器第一次学会识别名字。现在要完成 Phase 0 的 lexer 收尾：让它不仅知道“这是名字”，还知道“这个名字是不是语言自己保留的词”。这样后面的 parser 才能自然识别 <code>let</code> 语句和 <code>print</code> 语句。
+    </section>
+
+    <section>
+      <h2>今天只新增这 2 个 token</h2>
+      <ul>
+        <li><code>Let</code></li>
+        <li><code>Print</code></li>
+      </ul>
+      <p>目标不是发明新扫描策略，而是在已经能读出 <code>Ident(String)</code> 的基础上，再判断扫描出的名字是不是关键字。</p>
+    </section>
+
+    <section>
+      <h2>本课目标输入 / 输出</h2>
+      <pre><code>输入: let x = 12;
+输出: Let
+      Ident("x")
+      Equal
+      Number(12)
+      Semicolon
+
+输入: print foo;
+输出: Print
+      Ident("foo")
+      Semicolon</code></pre>
+      <p>也就是说，<code>let</code> 和 <code>print</code> 不再是普通 <code>Ident</code>，而要变成专门 token。</p>
+    </section>
+
+    <section>
+      <h2>你要亲手完成的步骤</h2>
+      <ol class="steps">
+        <li>在 <code>enum Token</code> 中新增 <code>Let</code> 和 <code>Print</code></li>
+        <li>保持现有标识符扫描逻辑不变，先把连续名字读完整</li>
+        <li>在输出名字 token 的那一步，判断字符串内容是否等于 <code>"let"</code> 或 <code>"print"</code></li>
+        <li>如果匹配关键字，就输出对应 token；否则仍输出 <code>Ident(...)</code></li>
+        <li>补充测试，验证关键字和普通标识符都能正确区分</li>
+      </ol>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：下面输入该怎么切？</h2>
+      <p>输入 <code>"print x;"</code>，正确输出是哪一项？</p>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. <code>Print</code>, <code>Ident("x")</code>, <code>Semicolon</code></label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. <code>Ident("print")</code>, <code>Ident("x")</code>, <code>Semicolon</code></label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. <code>Print</code>, <code>Number(x)</code>, <code>Semicolon</code></label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：关键字识别最容易犯的错是什么？</h2>
+      <p>如果你一看到字母 <code>p</code> 就立刻把它当成 <code>Print</code>，最容易出什么错？</p>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 会把 <code>printfoo</code> 错误拆成 <code>Print</code> 和 <code>Ident("foo")</code></label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 会让括号失效</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 会让数字无法解析</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：贴出你的程序输出</h2>
+      <p>用输入 <code>"let x = 1; print x;"</code> 运行你的程序，把实际输出粘贴到下面，和目标对比。</p>
+      <textarea id="self-check" placeholder="例如：&#10;Let&#10;Ident("x")&#10;Equal&#10;Number(1)&#10;Semicolon&#10;Print&#10;Ident("x")&#10;Semicolon"></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照目标输出</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <p>如果你的代码通过下面两个用例，这节课就完成了：</p>
+      <pre><code>用例 1:
+输入: let x = 12;
+输出: Let, Ident("x"), Equal, Number(12), Semicolon
+
+用例 2:
+输入: print foo;
+输出: Print, Ident("foo"), Semicolon</code></pre>
+    </section>
+
+    <section>
+      <h2>卡住时优先检查这 3 件事</h2>
+      <ul>
+        <li>是不是先把整个名字读完，再判断是否是关键字？</li>
+        <li>是不是把 <code>let</code> 和 <code>print</code> 错误地仍然输出成了 <code>Ident</code>？</li>
+        <li>普通名字如 <code>foo</code>、<code>bar</code> 是否仍然保留为 <code>Ident</code>？</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>本课后的观察点：</strong>
+      完成这一课后，你的 lexer 就基本收尾了。接下来 parser 不必再去猜测 <code>Ident("let")</code> 到底是不是关键字，而可以直接根据 token 类型解析语句。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://craftinginterpreters.com/scanning.html#reserved-words-and-identifiers" target="_blank" rel="noreferrer">Crafting Interpreters — Reserved Words and Identifiers</a>：在完整读出标识符后，再判断是否为关键字。</li>
+      </ul>
+      <p>如果你卡住了，继续来问我。我会帮你拆开“标识符扫描”和“关键字区分”这两个层次。</p>
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0007-add-keywords-let-print.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'a') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> <code>print</code> 现在应该被识别成关键字，而不是普通标识符。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 这节课的核心就是把 <code>let</code> / <code>print</code> 从普通名字中区分出来。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'a') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 关键字识别必须遵守“先读完整个名字，再判断”的原则，否则会把普通标识符误拆。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 这一课最典型的错误，是过早把名字前缀认成关键字。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      const expected = 'Let\nIdent("x")\nEqual\nNumber(1)\nSemicolon\nPrint\nIdent("x")\nSemicolon';
+      if (!value) { setFeedback('feedback-3', false, '<strong>先贴入你的输出。</strong>'); return; }
+      if (value === expected) {
+        setFeedback('feedback-3', true, '<strong>输出匹配。</strong> 你的 lexer 已经能区分 Phase 0 里的关键字和普通标识符了。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还没对齐目标。</strong> 重点检查：<code>let</code> 和 <code>print</code> 是否仍然被当成了普通 <code>Ident</code>。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>
