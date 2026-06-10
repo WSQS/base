@@ -22,7 +22,7 @@ enum Expr {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Token {
     Plus,
     Minus,
@@ -117,6 +117,50 @@ fn scan(input: &str) -> Vec<Token> {
     result
 }
 
+fn parse_token(token: &Token) -> Expr {
+    match token {
+        Token::Number(i) => Expr::Number(*i),
+        Token::Ident(name) => Expr::Ident(name.clone()),
+        _ => {
+            println!("invalid token:{token:?}");
+            Expr::Number(0)
+        }
+    }
+}
+
+fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Expr {
+    let t = tokens.index(*i);
+    let l = parse_token(t);
+    if *i + 1 > tokens.len() || matches!(tokens.index(*i + 1), Token::Semicolon) {
+        *i = *i + 1;
+        return l;
+    }
+    let t_n = tokens.index(*i + 1);
+    match t_n {
+        Token::Plus => {}
+        Token::Minus => {}
+        Token::Star => {}
+        Token::Slash => {}
+        Token::Equal => {}
+        _ => {
+            println!("invalid token:{t_n:?}");
+            return l;
+        }
+    }
+    if *i + 3 > tokens.len() {
+        *i = *i + 2;
+        return l;
+    }
+    let t_n_n = tokens.index(*i + 2);
+    let r = parse_token(t_n_n);
+    *i += 3;
+    return Expr::Binary {
+        left: Box::new(l),
+        op: t_n.clone(),
+        right: Box::new(r),
+    };
+}
+
 fn parse(input: &str) -> Program {
     let tokens = scan(input);
     let mut i = 0;
@@ -128,16 +172,9 @@ fn parse(input: &str) -> Program {
                 if i + 2 > tokens.len() {
                     println!("Length is not enough for print")
                 }
-                let t_next = tokens.index(i + 1);
-                let expr = match t_next {
-                    Token::Number(i) => Expr::Number(*i),
-                    Token::Ident(name) => Expr::Ident(name.clone()),
-                    _ => {
-                        println!("invalid token:{t:?}");
-                        Expr::Number(0)
-                    }
-                };
-                let t_next_next = tokens.index(i + 2);
+                i += 1;
+                let expr = parse_expr(&tokens, &mut i);
+                let t_next_next = tokens.index(i);
                 if !matches!(t_next_next, &Token::Semicolon) {
                     println!("Missing semicolon")
                 }
@@ -158,16 +195,9 @@ fn parse(input: &str) -> Program {
                 if !matches!(t_next_next, &Token::Equal) {
                     println!("Missing equal")
                 }
-                let t_next_next_next = tokens.index(i + 3);
-                let expr = match t_next_next_next {
-                    Token::Number(i) => Expr::Number(*i),
-                    Token::Ident(name) => Expr::Ident(name.clone()),
-                    _ => {
-                        println!("invalid token:{t:?}");
-                        Expr::Number(0)
-                    }
-                };
-                let t_next_next_next_next = tokens.index(i + 4);
+                i += 3;
+                let expr = parse_expr(&tokens, &mut i);
+                let t_next_next_next_next = tokens.index(i);
                 if !matches!(t_next_next_next_next, &Token::Semicolon) {
                     println!("Missing semicolon")
                 }
@@ -175,7 +205,7 @@ fn parse(input: &str) -> Program {
                     name: indent_name,
                     expr,
                 });
-                i += 4
+                i += 1
             }
             _ => {
                 println!("invalid token:{t:?}");

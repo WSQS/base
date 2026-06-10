@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0010 · 最小二元表达式解析清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0010</div>
+    <h1>最小二元表达式解析清单</h1>
+    <p>用途：在现有最小 parser 上加入第一层 <code>Expr::Binary</code> 能力时，快速检查你是否真正开始构造表达式树。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应做到</h2>
+        <ul>
+          <li>能读取左侧原子表达式</li>
+          <li>能识别一个最小二元运算符</li>
+          <li>能读取右侧原子表达式</li>
+          <li>能产出 <code>Expr::Binary</code></li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不要求</h2>
+        <ul>
+          <li>完整优先级体系</li>
+          <li>完整括号分组解析</li>
+          <li>复杂错误恢复</li>
+          <li>evaluator</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>最小思路</h2>
+    <pre><code>parse_expr()
+  1. 读取左侧原子表达式
+  2. 看后面是否是一个支持的二元运算符
+  3. 如果是，再读取右侧原子表达式
+  4. 组装成 Binary</code></pre>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>let x = 1 + 2;</code> → 右侧是 <code>Binary(Number(1), Plus, Number(2))</code></li>
+      <li><code>print x + 3;</code> → 表达式是 <code>Binary(Ident("x"), Plus, Number(3))</code></li>
+    </ul>
+
+    <h2>最容易犯的 3 个错误</h2>
+    <ul>
+      <li>仍然只返回单个 <code>Number</code> / <code>Ident</code>，没有真正往后看操作符</li>
+      <li>把语句解析和表达式解析写成一团，难以继续扩展</li>
+      <li>试图��步到位做完全部优先级，导致本课跨度过大</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0010-minimal-binary-parser-checklist.html</code></p>
+  </main>
+</body>
+</html>
