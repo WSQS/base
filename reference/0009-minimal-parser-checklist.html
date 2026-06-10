@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0009 · 最小 parser 清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0009</div>
+    <h1>最小 parser 清单</h1>
+    <p>用途：在真正写 parser 的第一步里，快速检查你是否已经开始“消费 token 并产出 AST”，而不是继续手工伪造结果。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应做到</h2>
+        <ul>
+          <li>根据 token 类型区分 <code>Let</code> 和 <code>Print</code> 语句入口</li>
+          <li>消费最基本的 token 顺序</li>
+          <li>产出对应的 <code>Stmt</code> 节点</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不要求</h2>
+        <ul>
+          <li>完整表达式优先级解析</li>
+          <li>复杂错误恢复</li>
+          <li>全部语句类型</li>
+          <li>evaluator</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>最小 parser 入口结构</h2>
+    <pre><code>parse_program()
+  -> parse_stmt()*
+
+parse_stmt()
+  -> if next token is Let: parse_let_stmt()
+  -> if next token is Print: parse_print_stmt()</code></pre>
+
+    <h2>当前最小验证样例</h2>
+    <ul>
+      <li><code>let x = 1;</code> → <code>Stmt::Let</code></li>
+      <li><code>print x;</code> → <code>Stmt::Print</code></li>
+    </ul>
+
+    <h2>最容易犯的 3 个错误</h2>
+    <ul>
+      <li>parse 函数仍然直接手工返回固定 AST，没有真正消费 token</li>
+      <li>一开始就想把完整表达式 parser 一次写完，导致跨度过大</li>
+      <li>把语句入口判断和表达式解析细节耦合得太早</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0009-minimal-parser-checklist.html</code></p>
+  </main>
+</body>
+</html>

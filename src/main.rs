@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, ops::Index};
 
 #[derive(Debug)]
 struct Program {
@@ -119,18 +119,70 @@ fn scan(input: &str) -> Vec<Token> {
 
 fn parse(input: &str) -> Program {
     let tokens = scan(input);
+    let mut i = 0;
     let mut result = Program { stmts: Vec::new() };
-    result.stmts.push(Stmt::Let {
-        name: "x".to_string(),
-        expr: Expr::Binary {
-            left: Box::new(Expr::Number(1)),
-            op: Token::Plus,
-            right: Box::new(Expr::Number(2)),
-        },
-    });
-    result.stmts.push(Stmt::Print {
-        expr: Expr::Ident("x".to_string()),
-    });
+    while i < tokens.len() {
+        let t = tokens.index(i);
+        match t {
+            Token::Print => {
+                if i + 2 > tokens.len() {
+                    println!("Length is not enough for print")
+                }
+                let t_next = tokens.index(i + 1);
+                let expr = match t_next {
+                    Token::Number(i) => Expr::Number(*i),
+                    Token::Ident(name) => Expr::Ident(name.clone()),
+                    _ => {
+                        println!("invalid token:{t:?}");
+                        Expr::Number(0)
+                    }
+                };
+                let t_next_next = tokens.index(i + 2);
+                if !matches!(t_next_next, &Token::Semicolon) {
+                    println!("Missing semicolon")
+                }
+                result.stmts.push(Stmt::Print { expr });
+                i += 2
+            }
+            Token::Let => {
+                if i + 4 > tokens.len() {
+                    println!("Length is not enough for let")
+                }
+                let t_next = tokens.index(i + 1);
+                let indent_name = if let Token::Ident(name) = t_next {
+                    name.clone()
+                } else {
+                    "".to_string()
+                };
+                let t_next_next = tokens.index(i + 2);
+                if !matches!(t_next_next, &Token::Equal) {
+                    println!("Missing equal")
+                }
+                let t_next_next_next = tokens.index(i + 3);
+                let expr = match t_next_next_next {
+                    Token::Number(i) => Expr::Number(*i),
+                    Token::Ident(name) => Expr::Ident(name.clone()),
+                    _ => {
+                        println!("invalid token:{t:?}");
+                        Expr::Number(0)
+                    }
+                };
+                let t_next_next_next_next = tokens.index(i + 4);
+                if !matches!(t_next_next_next_next, &Token::Semicolon) {
+                    println!("Missing semicolon")
+                }
+                result.stmts.push(Stmt::Let {
+                    name: indent_name,
+                    expr,
+                });
+                i += 4
+            }
+            _ => {
+                println!("invalid token:{t:?}");
+                i += 1
+            }
+        }
+    }
     result
 }
 
@@ -216,5 +268,24 @@ mod tests {
             } if name == "x" && matches!(left.as_ref(), Expr::Number(1)) && matches!(right.as_ref(), Expr::Number(2))
         ));
         assert!(matches!(&program.stmts[1],Stmt::Print { expr:Expr::Ident(x) } if x == "x"));
+    }
+
+    #[test]
+    fn test_parse_simple_let() {
+        let program = parse("let x = 1;");
+        assert!(matches!(&program.stmts[0], Stmt::Let {
+                name,
+                expr: Expr::Number(1),
+            } if name == "x"
+        ));
+    }
+
+    #[test]
+    fn test_parse_simple_print() {
+        let program = parse("print x;");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Ident(name),
+            } if name == "x"
+        ));
     }
 }
