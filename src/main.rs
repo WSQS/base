@@ -1,6 +1,28 @@
 use std::io;
 
 #[derive(Debug)]
+struct Program {
+    stmts: Vec<Stmt>,
+}
+
+#[derive(Debug)]
+enum Stmt {
+    Let { name: String, expr: Expr },
+    Print { expr: Expr },
+}
+
+#[derive(Debug)]
+enum Expr {
+    Number(i64),
+    Ident(String),
+    Binary {
+        left: Box<Expr>,
+        op: Token,
+        right: Box<Expr>,
+    },
+}
+
+#[derive(Debug)]
 enum Token {
     Plus,
     Minus,
@@ -94,6 +116,24 @@ fn scan(input: &str) -> Vec<Token> {
     }
     result
 }
+
+fn parse(input: &str) -> Program {
+    let tokens = scan(input);
+    let mut result = Program { stmts: Vec::new() };
+    result.stmts.push(Stmt::Let {
+        name: "x".to_string(),
+        expr: Expr::Binary {
+            left: Box::new(Expr::Number(1)),
+            op: Token::Plus,
+            right: Box::new(Expr::Number(2)),
+        },
+    });
+    result.stmts.push(Stmt::Print {
+        expr: Expr::Ident("x".to_string()),
+    });
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -161,5 +201,20 @@ mod tests {
         assert!(matches!(tokens[5], Token::Print));
         assert!(matches!(&tokens[6], Token::Ident(name) if name == "x"));
         assert!(matches!(tokens[7], Token::Semicolon));
+    }
+
+    #[test]
+    fn test_parse_output() {
+        let program = parse("let x = 1 + 2; print x;");
+        assert!(matches!(&program.stmts[0], Stmt::Let {
+                name,
+                expr: Expr::Binary {
+                    left,
+                    op: Token::Plus,
+                    right,
+                },
+            } if name == "x" && matches!(left.as_ref(), Expr::Number(1)) && matches!(right.as_ref(), Expr::Number(2))
+        ));
+        assert!(matches!(&program.stmts[1],Stmt::Print { expr:Expr::Ident(x) } if x == "x"));
     }
 }
