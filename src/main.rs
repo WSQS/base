@@ -2,7 +2,6 @@ use std::io;
 
 #[derive(Debug)]
 enum Token {
-    Number(i64),
     Plus,
     Minus,
     Star,
@@ -11,6 +10,8 @@ enum Token {
     RParen,
     Equal,
     Semicolon,
+    Number(i64),
+    Ident(String),
 }
 
 fn main() {
@@ -26,20 +27,23 @@ fn main() {
 
 fn scan(input: &str) -> Vec<Token> {
     let mut result = Vec::new();
-    let mut has_value = false;
-    let mut value: i64 = 0;
+    let mut value: String = "".to_string();
     for c in input.chars() {
         let mut flush = || {
-            if has_value {
-                has_value = false;
-                result.push(Token::Number(value));
-                value = 0
+            if !value.is_empty() {
+                let head = value.chars().nth(0);
+                if head.is_some_and(|head| head.is_numeric()) {
+                    result.push(Token::Number(
+                        value.parse::<i64>().expect("Parse int failed"),
+                    ));
+                } else {
+                    result.push(Token::Ident(value.clone()));
+                }
+                value = "".to_string();
             }
         };
-        if c.is_numeric() {
-            has_value = true;
-            let digit = c.to_digit(10).unwrap() as i64;
-            value = value * 10 + digit;
+        if c.is_alphanumeric() {
+            value = value + &c.to_string();
         } else if c == ' ' {
             flush();
         } else if c == '+' {
@@ -70,8 +74,15 @@ fn scan(input: &str) -> Vec<Token> {
             println!("Not support char:\"{c}\"")
         }
     }
-    if has_value {
-        result.push(Token::Number(value));
+    if !value.is_empty() {
+        let head = value.chars().nth(0);
+        if head.is_some_and(|head| head.is_numeric()) {
+            result.push(Token::Number(
+                value.parse::<i64>().expect("Parse int failed"),
+            ));
+        } else {
+            result.push(Token::Ident(value));
+        }
     }
     result
 }
@@ -116,6 +127,18 @@ mod tests {
         assert!(matches!(tokens[4], Token::RParen));
         assert!(matches!(tokens[5], Token::Equal));
         assert!(matches!(tokens[6], Token::Number(15)));
+        assert!(matches!(tokens[7], Token::Semicolon));
+    }
+    #[test]
+    fn test_identifier() {
+        let tokens = scan("(foo+3)=bar;");
+        assert!(matches!(tokens[0], Token::LParen));
+        assert!(matches!(&tokens[1], Token::Ident(name) if name == "foo"));
+        assert!(matches!(tokens[2], Token::Plus));
+        assert!(matches!(tokens[3], Token::Number(3)));
+        assert!(matches!(tokens[4], Token::RParen));
+        assert!(matches!(tokens[5], Token::Equal));
+        assert!(matches!(&tokens[6], Token::Ident(name) if name == "bar"));
         assert!(matches!(tokens[7], Token::Semicolon));
     }
 }

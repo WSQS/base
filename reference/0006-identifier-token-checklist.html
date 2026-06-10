@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0006 · 标识符扫描清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0006</div>
+    <h1>标识符扫描清单</h1>
+    <p>用途：在现有扫描器上第一次加入 <code>Ident(String)</code> 时，快速检查你是否正确处理了“连续名字字符”。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应支持</h2>
+        <ul>
+          <li><code>Ident(String)</code></li>
+          <li>名字与数字、符号混排</li>
+          <li>整段名字一次性读出</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不做</h2>
+        <ul>
+          <li>关键字区分</li>
+          <li>复杂命名规则</li>
+          <li>多字符运算符</li>
+          <li>完整错误恢复</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>识别标识符的最小流程</h2>
+    <pre><code>1. 遇到字母，开始读取名字
+2. 持续向后读，直到不是字母为止
+3. 把整段名字输出为 Ident(...)
+4. 继续扫描后续 token</code></pre>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>"foo = 12;"</code> → <code>Ident("foo")</code>, <code>Equal</code>, <code>Number(12)</code>, <code>Semicolon</code></li>
+      <li><code>"(bar+3)"</code> → <code>LParen</code>, <code>Ident("bar")</code>, <code>Plus</code>, <code>Number(3)</code>, <code>RParen</code></li>
+      <li><code>"x+y"</code> → 两个 Ident 和一个 Plus</li>
+    </ul>
+
+    <h2>最容易犯的 3 个错误</h2>
+    <ul>
+      <li>把 <code>foo</code> 错误地拆成 <code>f</code>、<code>o</code>、<code>o</code></li>
+      <li>名字扫描结束条件写错，导致���后面的符号吃进去</li>
+      <li>名字和数字 / 符号混排时，token 顺序错误</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0006-identifier-token-checklist.html</code></p>
+  </main>
+</body>
+</html>
