@@ -10,8 +10,9 @@ description: Optimize an existing GitHub Copilot skill based on specific problem
 1. Read the target skill's `SKILL.md` and any directly referenced local files.
 2. Start from the concrete problems the user identified, not from a generic rewrite goal.
 3. Use available context such as nearby skills, repository purpose, current workflow, recent conversation state, and any earlier use of the target skill in this session to infer what the skill should optimize for.
-4. Edit only what is needed to fix the reported problems without changing the intended capability unless the user asks for a scope change.
-5. Keep the result concise, specific, and easy for an agent to invoke correctly.
+4. Before editing, classify the reported problem: is it caused by the target skill itself, repository-local workflow, current session instructions, or higher-level agent behavior? Only encode the first category into the target skill unless the user explicitly asks for a scope change.
+5. Edit only what is needed to fix the reported problems without changing the intended capability unless the user asks for a scope change.
+6. Keep the result concise, specific, and easy for an agent to invoke correctly.
 
 ## Context to use
 
@@ -25,12 +26,15 @@ Use as much relevant context as is available:
 
 Do not optimize in a vacuum. If the user says a skill is too broad, too vague, not triggering, or producing the wrong kind of output, treat that as the primary optimization target. If the target skill was used earlier in the session, use that actual behavior as evidence for what should change.
 
+Do not bake temporary workflow habits, repository-specific collaboration patterns, or session-only instructions into a reusable skill unless the user explicitly wants that scope change.
+
 ## Workflow
 
 ### 1. Inspect the skill
 
 Check:
 - what exact problem the user wants fixed
+- whether the problem belongs to the target skill itself or to surrounding workflow/instructions
 - whether the current session already contains an example of the target skill being invoked or producing output
 - frontmatter fields such as `name`, `description`, and optional flags
 - whether the description clearly states capability and concrete triggers
@@ -43,6 +47,8 @@ Check:
 If the user gave multiple problems, rank them by impact on invocation accuracy and output quality.
 
 If there is prior in-session evidence, prefer observed failure modes over hypothetical ones.
+
+If the failure comes from surrounding workflow rather than the skill itself, either leave the skill unchanged or make only the minimal clarification needed to prevent future confusion.
 
 ### 2. Optimize the description
 
@@ -64,6 +70,7 @@ Prefer this structure:
 
 While editing:
 - preserve alignment with the user's stated problem
+- preserve the boundary between target skill content and external workflow
 - remove repetition
 - replace vague language with explicit actions
 - keep checklists actionable
@@ -86,6 +93,7 @@ Before finishing, verify:
 - [ ] The reported user problem was directly addressed
 - [ ] Relevant repository or conversation context was used
 - [ ] Earlier in-session usage of the target skill was incorporated when available
+- [ ] Repository workflow and session-only instructions were not accidentally encoded as target skill behavior
 - [ ] Description is specific and trigger-based
 - [ ] The skill's scope is clear
 - [ ] Instructions are concise and actionable
