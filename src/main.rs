@@ -43,10 +43,8 @@ fn main() {
     io::stdin()
         .read_line(&mut input)
         .expect("error in read_line");
-    let tokens = scan(&input);
-    for t in tokens {
-        println!("{:?}", t)
-    }
+    let program = parse(&input);
+    eval_program(&program);
 }
 
 fn scan(input: &str) -> Vec<Token> {
@@ -111,7 +109,13 @@ fn scan(input: &str) -> Vec<Token> {
                 value.parse::<i64>().expect("Parse int failed"),
             ));
         } else {
-            result.push(Token::Ident(value));
+            if value == "let" {
+                result.push(Token::Let);
+            } else if value == "print" {
+                result.push(Token::Print);
+            } else {
+                result.push(Token::Ident(value));
+            }
         }
     }
     result
@@ -216,6 +220,44 @@ fn parse(input: &str) -> Program {
     result
 }
 
+fn eval_expr(expr: &Expr) -> i64 {
+    match expr {
+        Expr::Number(i) => *i,
+        Expr::Binary { left, op, right } => {
+            let l = eval_expr(left);
+            let r = eval_expr(right);
+            match op {
+                Token::Plus => l + r,
+                Token::Minus => l - r,
+                Token::Star => l * r,
+                Token::Slash => l / r,
+                _ => {
+                    println!("Unsupported token:{op:?}");
+                    0
+                }
+            }
+        }
+        _ => {
+            println!("Unavailable expr:{expr:?}");
+            0
+        }
+    }
+}
+
+fn eval_program(program: &Program) {
+    for stmt in &program.stmts {
+        match stmt {
+            Stmt::Print { expr } => {
+                let result = eval_expr(expr);
+                println!("{result}")
+            }
+            _ => {
+                print!("Unsupported Stmt:{stmt:?}")
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -317,5 +359,15 @@ mod tests {
                 expr: Expr::Ident(name),
             } if name == "x"
         ));
+    }
+
+    #[test]
+    fn test_eval_expr() {
+        let result = eval_expr(&Expr::Binary {
+            left: Box::new(Expr::Number(5)),
+            op: Token::Plus,
+            right: Box::new(Expr::Number(7)),
+        });
+        assert!(matches!(result, 12));
     }
 }
