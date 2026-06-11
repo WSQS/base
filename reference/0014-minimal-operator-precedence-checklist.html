@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0014 · 最小运算符优先级清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0014</div>
+    <h1>最小运算符优先级清单</h1>
+    <p>用途：在 parser 第一次支持运算符层级时，快速确认你是否已经让乘除比加减更紧，并且没有破坏括号分组。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应做到</h2>
+        <ul>
+          <li><code>* /</code> 比 <code>+ -</code> 更紧</li>
+          <li><code>1 + 2 * 3</code> 解析成 <code>1 + (2 * 3)</code></li>
+          <li>括号仍然生效，如 <code>(1 + 2) * 3</code></li>
+          <li>最终输出与 AST 结构一致</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不要求</h2>
+        <ul>
+          <li>完整 Pratt parser</li>
+          <li>任意多优先级层级</li>
+          <li>复杂错误恢复</li>
+          <li>全面 parser 重构</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>最小思路</h2>
+    <pre><code>把表达式解析拆成至少两层
+
+较低层：处理更紧的部分
+  - 原子表达式
+  - 括号表达式
+  - 乘除
+
+较高层：在上面继续处理加减
+
+这样：
+  1 + 2 * 3
+会先把 2 * 3 组装好
+再和左边的 1 做加法</code></pre>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>print 1 + 2 * 3;</code> → 输出 <code>7</code></li>
+      <li><code>print (1 + 2) * 3;</code> → 输出 <code>9</code></li>
+    </ul>
+
+    <h2>最容易犯的 3 个错误</h2>
+    <ul>
+      <li>依旧在看到第一个操作符时立刻拼 Binary，导致所有操作符同级</li>
+      <li>修好了优先级，却把括��支持弄坏了</li>
+      <li>试图一次做完整通用表达式框架，超出当前 lesson 范围</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0014-minimal-operator-precedence-checklist.html</code></p>
+  </main>
+</body>
+</html>

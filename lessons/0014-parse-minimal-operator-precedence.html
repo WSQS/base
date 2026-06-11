@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0014 · 先让乘除比加减更紧</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.15rem; margin: 0 0 10px; }
+    h2 { font-size: 1.35rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.06rem; margin-bottom: 20px; }
+    .box, .exercise {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .goal { background: #eff6ff; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    .steps { counter-reset: step; list-style: none; padding-left: 0; }
+    .steps li { counter-increment: step; margin-bottom: 10px; padding-left: 28px; position: relative; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 22px;
+    }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0014</div>
+    <h1>先让乘除比加减更紧</h1>
+    <p class="lede">这一课只教一件事：让 parser 不再把所有运算符都按同一层处理，而是先做到最小优先级规则：<code>* /</code> 比 <code>+ -</code> 更紧。</p>
+
+    <section class="box goal">
+      <strong>和你的 mission 的关系：</strong>
+      你已经能解析最小二元表达式和括号分组，但如果没有优先级，表达式系统还不够像真正的语言。Phase 0 想成为稳定可运行的语言原型，就必须让最常见的数学表达式不再被错误分组。
+    </section>
+
+    <section>
+      <h2>今天只做这一件事</h2>
+      <p>本课不要直接上完整 Pratt parser 或完整 precedence climbing。范围严格控制在：</p>
+      <ul>
+        <li>让 <code>*</code> / <code>/</code> 的绑定强于 <code>+</code> / <code>-</code></li>
+        <li>至少正确处理 <code>1 + 2 * 3</code></li>
+        <li>保持已有括号支持仍然成立</li>
+        <li>仍然接进现有的 <code>let</code> / <code>print</code></li>
+      </ul>
+      <p>也就是说，这节课的最小目标是：</p>
+      <pre><code>print 1 + 2 * 3;</code></pre>
+      <p>应该被解析成：</p>
+      <pre><code>1 + (2 * 3)</code></pre>
+      <p>而不是：</p>
+      <pre><code>(1 + 2) * 3</code></pre>
+    </section>
+
+    <section>
+      <h2>这节课真正要学会的不是“多写几个 if”</h2>
+      <p>你要建立的是一个新的 parser 直觉：</p>
+      <ul>
+        <li>表达式不是一层平铺</li>
+        <li>不同运算符有不同“紧密程度”</li>
+        <li>parser 需要按层次解析表达式，而不是看到一个操作符就立刻拼一个 Binary</li>
+      </ul>
+      <p>这正是 <a href="https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing" target="_blank" rel="noreferrer">precedence climbing</a> 和 <a href="https://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/" target="_blank" rel="noreferrer">Pratt parser</a> 要解决的核心问题。只是这一课我们先做最小版，不要求一步到位。</p>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <p>当前最自然的最小重组是把表达式解析拆成两层：</p>
+      <ol class="steps">
+        <li>一层负责解析“更紧的部分”，例如原子表达式 / 括号 / 乘除</li>
+        <li>另一层在上面继续解析加减</li>
+        <li>这样当看到 <code>1 + 2 * 3</code> 时，右边会先被解析成 <code>2 * 3</code></li>
+      </ol>
+      <p>你不必一开始就用术语命名得很标准，但结构上最好开始出现“分层解析表达式”的意识。</p>
+    </section>
+
+    <section>
+      <h2>本课目标输入 / 输出</h2>
+      <pre><code>输入程序:
+print 1 + 2 * 3;
+
+目标 AST 形状:
+Binary(
+  Number(1),
+  Plus,
+  Binary(Number(2), Star, Number(3))
+)
+
+最终输出:
+7</code></pre>
+      <pre><code>输入程序:
+print (1 + 2) * 3;
+
+目标：
+括号分组仍然优先于默认优先级
+最终输出 9</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：`1 + 2 * 3` 应该先结合哪一部分？</h2>
+      <p>在最小优先级规则下，下面哪一种结构才是对的？</p>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. <code>(1 + 2) * 3</code></label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. <code>1 + (2 * 3)</code></label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 三个数字平铺，不需要树结构</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：括号和默认优先级谁更强？</h2>
+      <p>对于 <code>(1 + 2) * 3</code>，为什么最终还应该先算 <code>1 + 2</code>？</p>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 因为括号显式指定了分组边界</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 因为加号天生总是比乘号强</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 因为 evaluator 会自动修正 parser 的错误结构</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写下你的最小优先级样例</h2>
+      <p>请写下你准备用来验证优先级是否正确的一个最小输入，以及你预期的 AST 或输出。</p>
+      <textarea id="self-check" placeholder="例如：&#10;输入: print 1 + 2 * 3;&#10;预期输出: 7&#10;预期结构: 1 + (2 * 3)"></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li>你已经让 <code>* /</code> 比 <code>+ -</code> 更紧</li>
+        <li>你已经验证 <code>1 + 2 * 3</code> 不会被错误解析成 <code>(1 + 2) * 3</code></li>
+        <li>你已经验证括号仍然有效，例如 <code>(1 + 2) * 3</code></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课故意不做什么</h2>
+      <ul>
+        <li>先不追求完整 Pratt parser</li>
+        <li>先不追求任意多优先级层级</li>
+        <li>先不做一整套 parser 错误恢复</li>
+        <li>先不扩展新语句或新数据类型</li>
+      </ul>
+      <p>这一课的目标只是让表达式第一次真正开始“分层”。</p>
+    </section>
+
+    <section>
+      <h2>卡住时优先检查这 4 件事</h2>
+      <ul>
+        <li>你是不是依然在看到第一个操作符时就立刻组装 Binary？</li>
+        <li>你是不是还没有把表达式解析拆出至少两层？</li>
+        <li>你是不是修好了 `1 + 2 * 3`，却把括号支持弄坏了？</li>
+        <li>你是不是一开始就想实现完整通用表达式框架，而不是先做最小优先级？</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>本课后的观察点：</strong>
+      完成这一课后，你的 parser 就不再只是“支持括号和最小 binary”，而是第一次具备真正的运算符层次感。这会让后面继续扩展表达式系统时稳定很多。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing" target="_blank" rel="noreferrer">Parsing Expressions by Precedence Climbing</a>：解释为什么表达式解析要按优先级分层。</li>
+        <li><a href="https://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/" target="_blank" rel="noreferrer">Pratt Parsers: Expression Parsing Made Easy</a>：帮助你建立更长远的表达式解析视角。</li>
+      </ul>
+      <p>如果你开始拆表达式层级时卡住了，把当前 `parse_expr()` 贴给我，我们继续一起拆。</p>
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0014-parse-minimal-operator-precedence.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> 在最小优先级规则下，乘除必须先结合，所以应解析成 <code>1 + (2 * 3)</code>。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 本课的目标正是让 parser 不再把所有操作符都放在同一层。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'a') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 括号是显式分组，因此优先于默认运算符优先级。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> parser 必须先构造正确的结构，evaluator 不应替 parser 修 AST。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写出一个最小优先级样例。</strong>'); return; }
+      const ok = value.includes('*') || value.includes('/');
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 先用一个同时包含加减与乘除的最小样例验证优先级，是这一课最好的推进方式。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够聚焦。</strong> 这节课请务必用一个能区分优先级的表达式做验证。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>
