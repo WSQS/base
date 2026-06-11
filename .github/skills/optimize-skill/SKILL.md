@@ -1,6 +1,6 @@
 ---
 name: optimize-skill
-description: Optimize an existing GitHub Copilot skill based on specific problems the user points out, using available repository and conversation context to make the skill clearer, tighter, and easier to invoke correctly. Use when the user reports issues with a skill's triggers, scope, structure, wording, behavior, or supporting files and wants a targeted revision.
+description: Diagnose and improve an existing GitHub Copilot skill or its surrounding workspace guidance based on concrete problems, using repository and conversation context to clarify the real issue before editing. Use when the user reports that a skill is behaving incorrectly, is confusing, has the wrong scope, or may need changes in either the skill or related workspace instruction files.
 ---
 
 # Optimize Skill
@@ -10,9 +10,10 @@ description: Optimize an existing GitHub Copilot skill based on specific problem
 1. Read the target skill's `SKILL.md` and any directly referenced local files.
 2. Start from the concrete problems the user identified, not from a generic rewrite goal.
 3. Use available context such as nearby skills, repository purpose, current workflow, recent conversation state, and any earlier use of the target skill in this session to infer what the skill should optimize for.
-4. Before editing, classify the reported problem: is it caused by the target skill itself, repository-local workflow, current session instructions, or higher-level agent behavior? Only encode the first category into the target skill unless the user explicitly asks for a scope change.
-5. Edit only what is needed to fix the reported problems without changing the intended capability unless the user asks for a scope change.
-6. Keep the result concise, specific, and easy for an agent to invoke correctly.
+4. Before editing, clarify the actual problem: confirm whether the issue is really in the target skill, in repository-local workflow, in current session instructions, or in higher-level agent behavior.
+5. If the problem is still ambiguous, discuss it with the user first instead of editing immediately.
+6. Edit only what is needed to fix the confirmed problem without changing the intended capability unless the user asks for a scope change.
+7. Keep the result concise, specific, and easy for an agent to invoke correctly.
 
 ## Context to use
 
@@ -27,6 +28,8 @@ Use as much relevant context as is available:
 Do not optimize in a vacuum. If the user says a skill is too broad, too vague, not triggering, or producing the wrong kind of output, treat that as the primary optimization target. If the target skill was used earlier in the session, use that actual behavior as evidence for what should change.
 
 Do not bake temporary workflow habits, repository-specific collaboration patterns, or session-only instructions into a reusable skill unless the user explicitly wants that scope change.
+
+Do not assume the fix belongs in the skill file. Sometimes the right fix is to adjust a related workspace file such as `NOTES.md`, a companion instruction file, or another referenced local file.
 
 ## Workflow
 
@@ -50,7 +53,22 @@ If there is prior in-session evidence, prefer observed failure modes over hypoth
 
 If the failure comes from surrounding workflow rather than the skill itself, either leave the skill unchanged or make only the minimal clarification needed to prevent future confusion.
 
-### 2. Optimize the description
+If the problem statement is underspecified, ask focused questions or summarize the candidate interpretations before making edits.
+
+### 2. Decide what should change
+
+Choose the smallest correct target for the fix:
+- the target skill's frontmatter
+- the target skill body
+- a referenced local file
+- another workspace instruction/configuration file
+- no file yet; clarify with the user first
+
+Do not default to editing `description` and body if the problem is really elsewhere.
+
+### 3. Optimize the description
+
+Only revise the description when the confirmed problem involves invocation, trigger accuracy, or scope confusion.
 
 Ensure the description:
 - addresses the failure mode implied by the user's complaint
@@ -60,7 +78,7 @@ Ensure the description:
 - distinguishes the skill from nearby or overlapping skills
 - stays within frontmatter limits and avoids filler
 
-### 3. Optimize the body
+### 4. Optimize the body or related files
 
 Prefer this structure:
 - short purpose statement
@@ -78,7 +96,9 @@ While editing:
 - avoid speculative or time-sensitive guidance
 - prefer targeted fixes over full rewrites when a small change solves the issue
 
-### 4. Split only when necessary
+If the confirmed fix belongs outside the skill file, update that file instead and explain why the skill itself was not the right edit target.
+
+### 5. Split only when necessary
 
 Create supporting files only if clearly needed, such as when:
 - `SKILL.md` becomes too long or mixes multiple concerns
@@ -94,6 +114,8 @@ Before finishing, verify:
 - [ ] Relevant repository or conversation context was used
 - [ ] Earlier in-session usage of the target skill was incorporated when available
 - [ ] Repository workflow and session-only instructions were not accidentally encoded as target skill behavior
+- [ ] The actual problem was clarified before editing
+- [ ] The correct edit target was chosen instead of assuming the skill file must change
 - [ ] Description is specific and trigger-based
 - [ ] The skill's scope is clear
 - [ ] Instructions are concise and actionable
@@ -106,7 +128,9 @@ Before finishing, verify:
 
 When reporting back:
 - summarize which reported problems were optimized
+- mention whether you first clarified or reframed the problem before editing
 - mention what context influenced the revision
 - mention whether earlier in-session target skill behavior influenced the revision
+- mention whether the fix landed in the skill file or another workspace file, and why
 - mention any new supporting files
 - call out any remaining ambiguity in the skill's intended scope
