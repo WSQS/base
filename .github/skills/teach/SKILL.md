@@ -40,6 +40,8 @@ The lesson should teach ONE THING only. It should be completable very quickly - 
 
 Make opening a lesson as easy as possible — ideally a single CLI command the user can run to open the HTML file in their browser.
 
+Treat a lesson as incomplete until the relevant teaching workspace state is updated, especially the corresponding `./learning-records/*.md` entry.
+
 ## The Mission
 
 Every lesson should be tied into the mission - the reason that the user is interested in learning about the topic.
@@ -60,6 +62,8 @@ The user may specify an exact thing they want to learn. If they don't, figure ou
 
 A user may tell you that they already know about that topic. If so, record it in their `learning-records`.
 
+`./learning-records/*.md` are required teaching state, not optional documentation. If a lesson is completed or prior knowledge is established, update the relevant learning record unless the user explicitly says not to update learning records.
+
 ## Acquiring Knowledge & Skills
 
 Lessons should be designed around a skill the user is going to learn. The knowledge in the lesson should be only what's required to acquire that skill. You teach the knowledge first, then get the user to practice the skills via an interactive feedback loop.
@@ -67,6 +71,12 @@ Lessons should be designed around a skill the user is going to learn. The knowle
 Knowledge should first be gathered from trusted resources. Use `RESOURCES.md` to keep track of them. Lessons should be littered with citations - links to external resources to back up any claim made. This increases the trustworthiness of the lesson, and gives the user a path to acquire more knowledge if they want to go deeper.
 
 Each lesson should contain a reminder to ask followup questions to the agent. The agent is their teacher, and can assist with anything that's unclear.
+
+## Lesson Completion Workflow
+
+When a lesson is completed or prior knowledge is established, write or update the relevant `./learning-records/*.md` entry using [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md) before treating that lesson state as fully captured.
+
+Do not skip this just because the workspace has a general preference against creating extra Markdown files. Learning records are part of the teaching workspace state.
 
 ### Skills
 
