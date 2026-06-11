@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0012 · 加入最小变量环境，让 let 和 ident 真正工作</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.15rem; margin: 0 0 10px; }
+    h2 { font-size: 1.35rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.06rem; margin-bottom: 20px; }
+    .box, .exercise {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .goal { background: #eff6ff; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    .steps { counter-reset: step; list-style: none; padding-left: 0; }
+    .steps li { counter-increment: step; margin-bottom: 10px; padding-left: 28px; position: relative; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 22px;
+    }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0012</div>
+    <h1>加入最小变量环境，让 <code>let</code> 和 <code>ident</code> 真正工作</h1>
+    <p class="lede">这一课只教一件事：让解释器记住变量的值，并在之后读出来。目标是让 <code>let x = 1 + 2; print x;</code> 真正输出 <code>3</code>。</p>
+
+    <section class="box goal">
+      <strong>和你的 mission 的关系：</strong>
+      你已经打通了最小执行闭环，但目前语言还不能保存状态。Phase 0 想要成为“最小但完整可运行的语言”，变量环境是下一块必不可少的能力：程序不仅要能算，还要能记住结果并再次使用它。
+    </section>
+
+    <section>
+      <h2>今天只做这一件事</h2>
+      <p>本课只关注“变量能存进去，再读出来”。范围严格控制在：</p>
+      <ul>
+        <li>为 evaluator 增加一个最小环境，例如 <code>HashMap&lt;String, i64&gt;</code></li>
+        <li>执行 <code>Stmt::Let</code> 时，把变量名和求值结果存入环境</li>
+        <li>求值 <code>Expr::Ident</code> 时，从环境中取值</li>
+        <li>让这条程序跑通：<code>let x = 1 + 2; print x;</code></li>
+      </ul>
+      <p>这节课故意不做作用域、可变更新、错误恢复。先只做“一个最小表，能存能取”。</p>
+    </section>
+
+    <section>
+      <h2>你要建立的新关系</h2>
+      <ul>
+        <li><code>eval_expr()</code> 不再只看表达式本身，还要读取环境</li>
+        <li><code>eval_program()</code> 不再只是遍历语句，还要持有并更新环境</li>
+        <li><code>let</code> 是“写入环境”</li>
+        <li><code>ident</code> 是“从环境读取”</li>
+      </ul>
+      <p>这一步会让你第一次感受到“运行时状态”是什么。<a href="https://craftinginterpreters.com/statements-and-state.html" target="_blank" rel="noreferrer">Crafting Interpreters 关于 statements and state</a> 把这件事讲得很清楚：变量的本质就是名字和状态的绑定。</p>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现形态</h2>
+      <pre><code>use std::collections::HashMap;
+
+fn eval_expr(expr: &Expr, env: &HashMap&lt;String, i64&gt;) -&gt; i64
+fn eval_program(program: &Program) {
+    let mut env = HashMap::new();
+    ...
+}</code></pre>
+      <p>保持最小，不要为了未来先设计复杂运行时结构。当前只需要一个“名字 → 数���”的表就够了。这也符合 <a href="https://mitpress.mit.edu/9780262047760/essentials-of-compilation/" target="_blank" rel="noreferrer">Essentials of Compilation</a> 的增量路线：先让整数和变量工作，再逐步扩展更复杂能力。</p>
+    </section>
+
+    <section>
+      <h2>推荐的实现顺序</h2>
+      <ol class="steps">
+        <li>先给 <code>eval_expr()</code> 增加环境参数</li>
+        <li>让 <code>Expr::Ident(name)</code> 从环境里找对应值</li>
+        <li>让 <code>Stmt::Let</code> 先求值右侧表达式，再把结果写进环境</li>
+        <li>让 <code>Stmt::Print</code> 在同一个环境里读取并输出结果</li>
+        <li>用 <code>let x = 1 + 2; print x;</code> 做真实验证</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>本课目标输入 / 输出</h2>
+      <pre><code>输入程序:
+let x = 1 + 2;
+print x;
+
+输出:
+3</code></pre>
+      <pre><code>输入程序:
+let a = 8;
+print a;
+
+输出:
+8</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：`let x = 1 + 2;` 做了什么？</h2>
+      <p>在当前课题里，这条语句最准确的含义是什么？</p>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. 把字符串 <code>"1 + 2"</code> 存进去</label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. 先算出结果，再把 <code>x -&gt; 3</code> 写入环境</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 让 parser 自动打印 <code>3</code></label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：谁应该持有环境？</h2>
+      <p>在当前最小实现里，哪个位置最适合持有整个程序执行期间共享的变量环境？</p>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. scanner</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. parser</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. evaluator / <code>eval_program()</code></label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写下你要验证的最小变量程序</h2>
+      <p>请写下一个包含 <code>let</code> 和 <code>print</code> 的最小输入，以及你预期的输出。</p>
+      <textarea id="self-check" placeholder="例如：&#10;输入: let x = 1 + 2; print x;&#10;输出: 3"></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li>你已经让 <code>Stmt::Let</code> 能把值写进环境</li>
+        <li>你已经让 <code>Expr::Ident</code> 能从环境读值</li>
+        <li>你已经用真实输入验证 <code>let x = 1 + 2; print x;</code> 输出 <code>3</code></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课故意不做什么</h2>
+      <ul>
+        <li>先不做嵌套作用域</li>
+        <li>先不做重复定义检查</li>
+        <li>先不做“未定义变量”优雅报错系统</li>
+        <li>先不做变量重新赋值语法</li>
+      </ul>
+      <p>你的目标不是一次做出完整语言状态模型，而是先掌握“最小环境”这个核心概念。</p>
+    </section>
+
+    <section>
+      <h2>卡住时优先检查这 4 件事</h2>
+      <ul>
+        <li>你是不是给 <code>eval_expr()</code> 传了环境，但递归处理 <code>left</code> / <code>right</code> 时忘了继续传？</li>
+        <li>你是不是在 <code>let</code> 时把表达式本身存进去了，而不是表达式的值？</li>
+        <li>你是不是把环境放在了局部临时位置，导致 <code>print</code> 时已经读不到？</li>
+        <li>你是不是还没先用一个最小例子验证整个链路？</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>本课后的观察点：</strong>
+      完成这一课后，你的语言将不再只是“马上算完就结束”，而是第一次具备持续状态。程序会开始像真正的小语言那样，能把前面语句的结果留给后面语句使用。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://craftinginterpreters.com/statements-and-state.html" target="_blank" rel="noreferrer">Crafting Interpreters — Statements and State</a>：解释变量和状态为何是解释器下一步的自然扩展。</li>
+        <li><a href="https://mitpress.mit.edu/9780262047760/essentials-of-compilation/" target="_blank" rel="noreferrer">Essentials of Compilation</a>：强调变量支持应作为早期增量能力加入，而不是等到系统很复杂后再补。</li>
+      </ul>
+      <p>如果你实现环境时卡住了，把当前的 <code>eval_expr()</code> / <code>eval_program()</code> 贴给我，我们继续一起拆。</p>
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0012-add-a-minimal-variable-environment.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> 当前课题的关键是先求值，再把名字绑定到���果上。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> <code>let</code> 的运行语义不是存源码字符串，也不是让 parser 去执行。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'c') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 环境属于执行期状态，最适合由 evaluator 持有并更新。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> scanner 和 parser 只负责结构分析，不负责程序运行时状态。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写出一个最小输入和预期输出。</strong>'); return; }
+      const ok = value.includes('let') && value.includes('print');
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 先用一个同时包含写入和读取的最小程序验证环境，是当前最好的推进方式。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够完整。</strong> 这节课请务必写出同时包含 <code>let</code> 和 <code>print</code> 的最小样例。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>

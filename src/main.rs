@@ -1,4 +1,4 @@
-use std::{io, ops::Index};
+use std::{collections::HashMap, io, ops::Index};
 
 #[derive(Debug)]
 struct Program {
@@ -220,12 +220,12 @@ fn parse(input: &str) -> Program {
     result
 }
 
-fn eval_expr(expr: &Expr) -> i64 {
+fn eval_expr(expr: &Expr, env: &HashMap<String, i64>) -> i64 {
     match expr {
         Expr::Number(i) => *i,
         Expr::Binary { left, op, right } => {
-            let l = eval_expr(left);
-            let r = eval_expr(right);
+            let l = eval_expr(left, env);
+            let r = eval_expr(right, env);
             match op {
                 Token::Plus => l + r,
                 Token::Minus => l - r,
@@ -237,6 +237,7 @@ fn eval_expr(expr: &Expr) -> i64 {
                 }
             }
         }
+        Expr::Ident(name) => *env.get(name).expect("Can't get identifier"),
         _ => {
             println!("Unavailable expr:{expr:?}");
             0
@@ -245,11 +246,16 @@ fn eval_expr(expr: &Expr) -> i64 {
 }
 
 fn eval_program(program: &Program) {
+    let mut env = HashMap::new();
     for stmt in &program.stmts {
         match stmt {
             Stmt::Print { expr } => {
-                let result = eval_expr(expr);
+                let result = eval_expr(expr, &env);
                 println!("{result}")
+            }
+            Stmt::Let { name, expr } => {
+                let result = eval_expr(expr, &env);
+                env.insert(name.clone(), result);
             }
             _ => {
                 print!("Unsupported Stmt:{stmt:?}")
@@ -363,11 +369,14 @@ mod tests {
 
     #[test]
     fn test_eval_expr() {
-        let result = eval_expr(&Expr::Binary {
-            left: Box::new(Expr::Number(5)),
-            op: Token::Plus,
-            right: Box::new(Expr::Number(7)),
-        });
+        let result = eval_expr(
+            &Expr::Binary {
+                left: Box::new(Expr::Number(5)),
+                op: Token::Plus,
+                right: Box::new(Expr::Number(7)),
+            },
+            &HashMap::new(),
+        );
         assert!(matches!(result, 12));
     }
 }

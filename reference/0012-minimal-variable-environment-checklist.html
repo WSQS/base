@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0012 · 最小变量环境清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0012</div>
+    <h1>最小变量环境清单</h1>
+    <p>用途：在解释器第一次支持变量存取时，快速确认你是否已经让程序具备最小状态能力。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应做到</h2>
+        <ul>
+          <li>有一个最小环境，如 <code>HashMap&lt;String, i64&gt;</code></li>
+          <li><code>let</code> 能把值写入环境</li>
+          <li><code>Ident</code> 能从环境读取值</li>
+          <li><code>let x = 1 + 2; print x;</code> 能输出 <code>3</code></li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不要求</h2>
+        <ul>
+          <li>嵌套作用域</li>
+          <li>变量重新赋值</li>
+          <li>未定义变量的完整错误系统</li>
+          <li>更复杂的运行时对象</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>最小思路</h2>
+    <pre><code>eval_program(program)
+  let mut env = HashMap::new()
+  遍历每条 stmt
+
+  let name = expr;
+    先算 expr 的值
+    再 env.insert(name, value)
+
+  print expr;
+    先 eval_expr(expr, &env)
+    再输出结果
+
+ eval_expr(expr, env)
+   Number(n) => n
+   Ident(name) => 从 env 取值
+   Binary(left, op, right) =>
+     递归计算左右两边</code></pre>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>let x = 1 + 2; print x;</code> → 输出 <code>3</code></li>
+      <li><code>let a = 8; print a;</code> → 输出 <code>8</code></li>
+    </ul>
+
+    <h2>最容易犯的 3 个错误</h2>
+    <ul>
+      <li>把表达式结构存进环境，而不是把表达式求值结果存进去</li>
+      <li>递归求值 binary 时没有继续把环境传下去</li>
+      <li>把环境放在错误的位置，导致后续语句看不到前面的变量</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0012-minimal-variable-environment-checklist.html</code></p>
+  </main>
+</body>
+</html>
