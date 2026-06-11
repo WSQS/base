@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0013 · 括号表达式解析清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0013</div>
+    <h1>括号表达式解析清单</h1>
+    <p>用途：在 parser 第一次支持分组表达式时，快速确认你是否已经让 <code>(expr)</code> 作为一个整体被正确解析。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应做到</h2>
+        <ul>
+          <li>遇到 <code>LParen</code> 时不再直接报错</li>
+          <li>能递归解析括号内部表达式</li>
+          <li>能正确消费对应的 <code>RParen</code></li>
+          <li><code>print (1 + 2);</code> 能成功 parse 并最终输出 <code>3</code></li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不要求</h2>
+        <ul>
+          <li>完整优先级体系</li>
+          <li>复杂嵌套表达式的完备支持</li>
+          <li>完整错误恢复</li>
+          <li>大规模 parser 重构</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>最小思路</h2>
+    <pre><code>parse_expr(...)
+  如果当前 token 是 LParen
+    跳过 LParen
+    递归解析里面的表达式
+    检查并消费 RParen
+    返回里面的表达式
+
+  否则
+    走原来的最小表达式路径</code></pre>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>print (1 + 2);</code> → 能 parse，并输出 <code>3</code></li>
+      <li><code>let x = (1 + 2); print x;</code> → 能 parse，并输出 <code>3</code></li>
+    </ul>
+
+    <h2>最容易犯的 3 个错误</h2>
+    <ul>
+      <li>解析完括号内部后，忘了再消费一个 <code>RParen</code></li>
+      <li>把括号 token 当成普通操作符处理</li>
+      <li>为了做括号，一次性推倒重写整个表达式解析器</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0013-grouped-expression-checklist.html</code></p>
+  </main>
+</body>
+</html>

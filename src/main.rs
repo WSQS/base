@@ -126,7 +126,7 @@ fn parse_token(token: &Token) -> Expr {
         Token::Number(i) => Expr::Number(*i),
         Token::Ident(name) => Expr::Ident(name.clone()),
         _ => {
-            println!("invalid token:{token:?}");
+            println!("[{}:{}]invalid token:{token:?}", file!(), line!());
             Expr::Number(0)
         }
     }
@@ -134,7 +134,18 @@ fn parse_token(token: &Token) -> Expr {
 
 fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Expr {
     let t = tokens.index(*i);
-    let l = parse_token(t);
+    let l = if matches!(t, Token::LParen) {
+        *i += 1;
+        let expr = parse_expr(tokens, i);
+        let t_n = tokens.index(*i + 1);
+        if !matches!(t_n, Token::RParen) {
+            println!("Expected right paren, get:{t_n:?}")
+        }
+        *i += 1;
+        expr
+    } else {
+        parse_token(t)
+    };
     if *i + 1 > tokens.len() || matches!(tokens.index(*i + 1), Token::Semicolon) {
         *i = *i + 1;
         return l;
@@ -151,13 +162,24 @@ fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Expr {
             return l;
         }
     }
-    if *i + 3 > tokens.len() {
-        *i = *i + 2;
+    *i = *i + 2;
+    if *i + 1 > tokens.len() {
         return l;
     }
-    let t_n_n = tokens.index(*i + 2);
-    let r = parse_token(t_n_n);
-    *i += 3;
+    let t_n_n = tokens.index(*i);
+    let r = if matches!(t_n_n, Token::LParen) {
+        *i += 1;
+        let expr = parse_expr(tokens, i);
+        let t_n = tokens.index(*i + 1);
+        if !matches!(t_n, Token::RParen) {
+            println!("Expected right paren, get:{t_n:?}")
+        }
+        *i += 1;
+        expr
+    } else {
+        *i += 1;
+        parse_token(t_n_n)
+    };
     return Expr::Binary {
         left: Box::new(l),
         op: t_n.clone(),
@@ -180,7 +202,7 @@ fn parse(input: &str) -> Program {
                 let expr = parse_expr(&tokens, &mut i);
                 let t_next_next = tokens.index(i);
                 if !matches!(t_next_next, &Token::Semicolon) {
-                    println!("Missing semicolon")
+                    println!("[{}:{}]Missing semicolon", file!(), line!())
                 }
                 result.stmts.push(Stmt::Print { expr });
                 i += 2
@@ -203,7 +225,7 @@ fn parse(input: &str) -> Program {
                 let expr = parse_expr(&tokens, &mut i);
                 let t_next_next_next_next = tokens.index(i);
                 if !matches!(t_next_next_next_next, &Token::Semicolon) {
-                    println!("Missing semicolon")
+                    println!("[{}:{}]Missing semicolon", file!(), line!())
                 }
                 result.stmts.push(Stmt::Let {
                     name: indent_name,
@@ -378,5 +400,14 @@ mod tests {
             &HashMap::new(),
         );
         assert!(matches!(result, 12));
+    }
+
+    #[test]
+    fn test_parse_paren() {
+        let program = parse("print 1 + (2+ 3);");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Binary { left, op, right },
+            } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::Plus) && matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2)) && matches!(op, Token::Plus) && matches!(right.as_ref(),Expr::Number(3)))
+        ));
     }
 }
