@@ -127,79 +127,70 @@ fn scan(input: &str) -> Vec<Token> {
     result
 }
 
-fn parse_token(token: &Token) -> Expr {
-    match token {
+fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
+    let t = tokens.index(*i);
+    *i += 1;
+    match t {
         Token::Number(i) => Expr::Number(*i),
         Token::Ident(name) => Expr::Ident(name.clone()),
+        Token::LParen => {
+            let e = parse_expr(tokens, i);
+            let t_n = tokens.index(*i + 1);
+            if matches!(t_n, Token::RParen) {
+                *i += 1
+            } else {
+                log!("Expected right paren, get:{t_n:?}")
+            }
+            e
+        }
         _ => {
-            log!("invalid token:{token:?}");
+            log!("invalid token:{t:?}");
             Expr::Number(0)
         }
     }
 }
 
-fn parse_paren(tokens: &Vec<Token>, i: &mut usize, is_high_precedence: bool) -> Expr {
+fn parse_mul_div(tokens: &Vec<Token>, i: &mut usize) -> Expr {
+    let l = parse_primary(tokens, i);
     let t = tokens.index(*i);
-    if matches!(t, Token::LParen) {
+    if matches!(t, Token::Star) || matches!(t, Token::Slash) {
         *i += 1;
-        let expr = parse_expr(tokens, i);
-        let t_n = tokens.index(*i + 1);
-        if !matches!(t_n, Token::RParen) {
-            log!("Expected right paren, get:{t_n:?}")
-        }
-        *i += 1;
-        expr
-    } else if is_high_precedence {
-        *i += 1;
-        parse_token(t)
-    } else {
-        parse_expr(tokens, i)
-    }
-}
-
-fn parse_expr_right(tokens: &Vec<Token>, i: &mut usize, l: Expr) -> Expr {
-    let t = tokens.index(*i);
-    let is_high_precedence = match t {
-        Token::Plus => false,
-        Token::Minus => false,
-        Token::Star => true,
-        Token::Slash => true,
-        Token::Equal => false,
-        _ => {
-            log!("invalid token:{t:?}");
-            return l;
-        }
-    };
-    *i += 1;
-    if *i + 1 > tokens.len() {
-        return l;
-    }
-    let r = parse_paren(tokens, i, is_high_precedence);
-    if is_high_precedence {
-        parse_expr_right(
-            tokens,
-            i,
-            Expr::Binary {
-                left: Box::new(l),
-                op: t.clone(),
-                right: Box::new(r),
-            },
-        )
-    } else {
+        let r = parse_primary(tokens, i);
         Expr::Binary {
             left: Box::new(l),
             op: t.clone(),
             right: Box::new(r),
         }
+    } else {
+        log!("invalid token:{t:?}");
+        l
+    }
+}
+
+fn parse_add_sub(tokens: &Vec<Token>, i: &mut usize) -> Expr {
+    let l = parse_mul_div(tokens, i);
+    let t = tokens.index(*i);
+    if matches!(t, Token::Plus) || matches!(t, Token::Minus) {
+        *i += 1;
+        let r = parse_mul_div(tokens, i);
+        Expr::Binary {
+            left: Box::new(l),
+            op: t.clone(),
+            right: Box::new(r),
+        }
+    } else {
+        log!("invalid token:{t:?}");
+        l
     }
 }
 
 fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Expr {
-    let l = parse_paren(tokens, i, true);
-    if *i > tokens.len() || matches!(tokens.index(*i), Token::Semicolon) {
-        return l;
+    let e = parse_add_sub(tokens, i);
+    let t = tokens.index(*i);
+    if !matches!(t, Token::Semicolon) {
+        log!("Expected semicolon, get{t:?}")
     }
-    parse_expr_right(tokens, i, l)
+    e
 }
 
 fn parse(input: &str) -> Program {

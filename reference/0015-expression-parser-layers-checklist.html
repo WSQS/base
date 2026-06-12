@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0015 · 表达式 parser 分层清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0015</div>
+    <h1>表达式 parser 分层清单</h1>
+    <p>用途：在表达式 parser 开始从“能用但混乱”整理为“能用且分层清楚”时，快速确认你是否已经把职责拆对了。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应做到</h2>
+        <ul>
+          <li>有清楚的表达式解析层次</li>
+          <li><code>primary</code> 负责最基础表达式</li>
+          <li><code>mul/div</code> 负责更紧的运算</li>
+          <li><code>add/sub</code> 负责更松的运算</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不要求</h2>
+        <ul>
+          <li>完整 Pratt parser</li>
+          <li>任意多优先级层级</li>
+          <li>同时整理 scanner / evaluator</li>
+          <li>一次性最终版 parser 架构</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>推荐层次</h2>
+    <pre><code>parse_expr()
+  -> parse_add_sub()
+      -> parse_mul_div()
+          -> parse_primary()</code></pre>
+
+    <h2>每层职责</h2>
+    <ul>
+      <li><code>parse_primary()</code>：数字、标识符、括号表达式</li>
+      <li><code>parse_mul_div()</code>：在 primary 之上处理 <code>* /</code></li>
+      <li><code>parse_add_sub()</code>：在 mul/div 之上处理 <code>+ -</code></li>
+      <li><code>parse_expr()</code>：表达式总入口</li>
+    </ul>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>print 1 + 2 * 3;</code> → 输出 <code>7</code></li>
+      <li><code>print (1 + 2) * 3;</code> → 输出 <code>9</code></li>
+    </ul>
+
+    <h2>最容易犯的 3 个错误</h2>
+    <ul>
+      <li>一个函数同时处理括号、原子、优先级和递归拼接，职责仍然混在一起</li>
+      <li>拆了很多函数，但每层实际职责仍然不清晰</li>
+      <li>整理结构时把已有括号或最小优先级能力弄坏了</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0015-expression-parser-layers-checklist.html</code></p>
+  </main>
+</body>
+</html>
