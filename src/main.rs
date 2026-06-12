@@ -155,7 +155,7 @@ fn parse_mul_div(tokens: &Vec<Token>, i: &mut usize) -> Expr {
     let t = tokens.index(*i);
     if matches!(t, Token::Star) || matches!(t, Token::Slash) {
         *i += 1;
-        let r = parse_primary(tokens, i);
+        let r = parse_mul_div(tokens, i);
         Expr::Binary {
             left: Box::new(l),
             op: t.clone(),
@@ -172,7 +172,7 @@ fn parse_add_sub(tokens: &Vec<Token>, i: &mut usize) -> Expr {
     let t = tokens.index(*i);
     if matches!(t, Token::Plus) || matches!(t, Token::Minus) {
         *i += 1;
-        let r = parse_mul_div(tokens, i);
+        let r = parse_add_sub(tokens, i);
         Expr::Binary {
             left: Box::new(l),
             op: t.clone(),
@@ -432,6 +432,36 @@ mod tests {
         assert!(matches!(&program.stmts[0], Stmt::Print {
                 expr: Expr::Binary { left, op, right },
             } if matches!(right.as_ref(),Expr::Number(3)) && matches!(op,Token::Plus) && matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op, Token::Star) && matches!(right.as_ref(),Expr::Number(2)))
+        ));
+    }
+
+    #[test]
+    fn test_precedence_3() {
+        let program = parse("print 1 + 2 + 3;");
+        log!("program:{program:?}");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Binary { left, op, right },
+            } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::Plus) && matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2)) && matches!(op, Token::Plus) && matches!(right.as_ref(),Expr::Number(3)))
+        ));
+    }
+
+    #[test]
+    fn test_precedence_4() {
+        let program = parse("print 1 * 2 * 3;");
+        log!("program:{program:?}");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Binary { left, op, right },
+            } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::Star) && matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2)) && matches!(op, Token::Star) && matches!(right.as_ref(),Expr::Number(3)))
+        ));
+    }
+
+    #[test]
+    fn test_precedence_5() {
+        let program = parse("print 1 + 2 * 3 + 4;");
+        log!("program:{program:?}");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Binary { left, op, right },
+            } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::Plus) && matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2))&& matches!(op,Token::Star) && matches!(right.as_ref(),Expr::Number(3))) && matches!(op, Token::Plus) && matches!(right.as_ref(),Expr::Number(4)))
         ));
     }
 }

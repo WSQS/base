@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0016 · 让分层 parser 支持表达式链</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.15rem; margin: 0 0 10px; }
+    h2 { font-size: 1.35rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.06rem; margin-bottom: 20px; }
+    .box, .exercise {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .goal { background: #eff6ff; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    .steps { counter-reset: step; list-style: none; padding-left: 0; }
+    .steps li { counter-increment: step; margin-bottom: 10px; padding-left: 28px; position: relative; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 22px;
+    }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0016</div>
+    <h1>让分层 parser 支持表达式链</h1>
+    <p class="lede">这一课只教一件事：让你已经拆层的表达式 parser，不再只会处理单个二元拼接，而是开始稳定支持同层连续表达式。</p>
+
+    <section class="box goal">
+      <strong>和你的 mission 的关系：</strong>
+      你已经把表达式 parser 整理成了更清晰的层次，现在最自然的下一步不是再加新语法，而是让这些层真正能承受更多真实输入。这样既符合“小步扩展 + 及时整理”，也能让 parser 更像一个能继续成长的核心结构。
+    </section>
+
+    <section>
+      <h2>今天只做这一件事</h2>
+      <p>本课只关注“同层连续表达式”是否能被当前分层 parser 正确处理。范围严格控制在：</p>
+      <ul>
+        <li>支持连续加减，例如 <code>1 + 2 + 3</code></li>
+        <li>支持连续乘除，例如 <code>2 * 3 * 4</code></li>
+        <li>支持混合链，例如 <code>1 + 2 * 3 + 4</code></li>
+        <li>仍然保留括号和已有优先级</li>
+      </ul>
+      <p>也就是说，你要让 parser 从“只会一层拼一次”进化到“能在同一层不断继续拼接”。</p>
+    </section>
+
+    <section>
+      <h2>这一课真正要建立的新直觉</h2>
+      <p>表达式层不是“进来一次，拼一个 Binary 就结束”。更自然的思路是：</p>
+      <ul>
+        <li>先解析当前层的左边</li>
+        <li>只要后面还是这一层负责的操作符，就继续往右吃</li>
+        <li>每吃一个，就把结果重新变成新的左边</li>
+      </ul>
+      <p>这意味着每一层最终都更像一个“循环拼接器”，而不是一次性的 if 分支。</p>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol class="steps">
+        <li>先让 <code>parse_mul_div()</code> 能连续处理多个 <code>* /</code></li>
+        <li>再让 <code>parse_add_sub()</code> 能连续处理多个 <code>+ -</code></li>
+        <li>每一层都沿用“已有结果继续当左边”的思路</li>
+        <li>保持 <code>parse_primary()</code> 的职责不变</li>
+      </ol>
+      <p>也就是：本课不是重命名函数，而是让这些层真正拥有“连续处理”能力。</p>
+    </section>
+
+    <section>
+      <h2>本课目标输入 / 输出</h2>
+      <pre><code>输入程序:
+print 1 + 2 + 3;
+
+目标：
+能正确 parse 为左结合链
+最终输出 6</code></pre>
+      <pre><code>输入程序:
+print 2 * 3 * 4;
+
+目标：
+能正确 parse 为左结合链
+最终输出 24</code></pre>
+      <pre><code>输入程序:
+print 1 + 2 * 3 + 4;
+
+目标：
+优先级仍然正确
+最终输出 11</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：为什么 `1 + 2 + 3` 不能只拼一次？</h2>
+      <p>当前分层 parser 如果只在加减层拼一个 Binary 就停止，会漏掉什么？</p>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. 会漏掉后面继续出现的同层操作符和右侧表达式</label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. 不会漏掉，因为 evaluator 会自动补完整</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 只要有括号就不需要处理链</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：哪一层应该负责 `2 * 3 * 4`？</h2>
+      <p>在你当前的分层结构里，下面哪一层应该继续循环处理这个链？</p>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. <code>parse_primary()</code></label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. <code>parse_mul_div()</code></label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. <code>parse()</code></label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写下你的最小链式样例</h2>
+      <p>请写下你准备先验证的一个连续表达式样例，以及你预期的输出或结构。</p>
+      <textarea id="self-check" placeholder="例如：&#10;输入: print 1 + 2 + 3;&#10;预期输出: 6&#10;或&#10;输入: print 1 + 2 * 3 + 4;&#10;预期输出: 11"></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li>你的加减层已经能处理连续加减</li>
+        <li>你的乘除层已经能处理连续乘除</li>
+        <li>你的优先级和括号能力仍然保持正确</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课故意不做什么</h2>
+      <ul>
+        <li>先不引入比较运算或赋值表达式</li>
+        <li>先不同时整理 scanner 或 evaluator</li>
+        <li>先不追求完整通用表达式框架</li>
+        <li>先不加入新的语句种类</li>
+      </ul>
+      <p>这一课的目标只是让现有分层结构能承受“连续同层表达式”。</p>
+    </section>
+
+    <section>
+      <h2>卡住时优先检查这 4 件事</h2>
+      <ul>
+        <li>你是不是仍然在某一层只拼一个 Binary 就立刻返回？</li>
+        <li>你是不是在循环处理中忘了把“新结果”重新作为左边？</li>
+        <li>你是不是修好了链式表达式，却把优先级关系搞坏了？</li>
+        <li>你是不是试图一次处理太多新运算类型？</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>本课后的观察点：</strong>
+      完成这一课后，你的 parser 分层将不只是“看上去更清楚”，而是真的开始拥有更像真实表达式解析器的持续处理能力。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://craftinginterpreters.com/parsing-expressions.html" target="_blank" rel="noreferrer">Crafting Interpreters — Parsing Expressions</a>：分层表达式解析的每一层都需要能持续消费自己负责的操作符。</li>
+        <li><a href="https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing" target="_blank" rel="noreferrer">Parsing Expressions by Precedence Climbing</a>：帮助理解为什么表达式层级通常需要重复吸收同级操作符。</li>
+      </ul>
+      <p>如果你开始让 `parse_mul_div()` / `parse_add_sub()` 支持链时卡住了，把新的实现贴给我，我们继续一起拆。</p>
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0016-parse-expression-chains.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'a') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> 链式表达式的关键就是当前层要能继续吸收后续同级操作符。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> evaluator 不会替 parser 补树结构，链式处理必须由 parser 完成。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 乘除链应由乘除层持续处理，而不是交给 primary 或程序级 parser。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 这一课的重点正是让每一层承担自己那一层的连续拼接职责。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写出一个链式表达式样例。</strong>'); return; }
+      const ok = value.includes('+') || value.includes('*') || value.includes('/');
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 只要你拿连续同层表达式来验证，这一课就走在正确方向上。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够聚焦。</strong> 这节课请务必用一个连续表达式链来做验证。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>

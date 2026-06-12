@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0016 · 表达式链解析清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0016</div>
+    <h1>表达式链解析清单</h1>
+    <p>用途：在分层 parser 第一次支持连续同层表达式时，快速确认每一层是否已经能持续吸收自己负责的操作符。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应做到</h2>
+        <ul>
+          <li>加减层能连续处理 <code>+ -</code></li>
+          <li>乘除层能连续处理 <code>* /</code></li>
+          <li>优先级仍然正确</li>
+          <li>括号分组仍然有效</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不要求</h2>
+        <ul>
+          <li>比较运算</li>
+          <li>赋值表达式</li>
+          <li>完整 Pratt parser</li>
+          <li>新语句种类</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>最小思路</h2>
+    <pre><code>parse_add_sub()
+  先拿一个 mul/div 结果
+  只要后面还是 + 或 -
+    就继续拿下一个 mul/div 结果
+    并把当前结果更新为新的左边
+
+parse_mul_div()
+  先拿一个 primary
+  只要后面还是 * 或 /
+    就继续拿下一个 primary
+    并把当前结果更新为新的左边</code></pre>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>print 1 + 2 + 3;</code> → 输出 <code>6</code></li>
+      <li><code>print 2 * 3 * 4;</code> → 输出 <code>24</code></li>
+      <li><code>print 1 + 2 * 3 + 4;</code> → 输出 <code>11</code></li>
+    </ul>
+
+    <h2>最容易犯的 3 个错误</h2>
+    <ul>
+      <li>某一层只拼一个 Binary 就返回，导致链��表达式被截断</li>
+      <li>忘了把新拼出的结果重新作为左边继续处理</li>
+      <li>修好了链式表达式，却把括号或优先级关系弄坏了</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0016-expression-chain-checklist.html</code></p>
+  </main>
+</body>
+</html>
