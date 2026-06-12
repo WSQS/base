@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0017 · 让表达式树按左结合生长</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.15rem; margin: 0 0 10px; }
+    h2 { font-size: 1.35rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.06rem; margin-bottom: 20px; }
+    .box, .exercise {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .goal { background: #eff6ff; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    .steps { counter-reset: step; list-style: none; padding-left: 0; }
+    .steps li { counter-increment: step; margin-bottom: 10px; padding-left: 28px; position: relative; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 22px;
+    }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0017</div>
+    <h1>让表达式树按左结合生长</h1>
+    <p class="lede">这一课只教一件事：在已经支持表达式链的基础上，让链式表达式不再右递归堆叠，而是开始按更自然的左结合方式生长。</p>
+
+    <section class="box goal">
+      <strong>和你的 mission 的关系：</strong>
+      你已经让分层 parser 支持了连续表达式链，现在最重要的不是再加新操作符，而是让现有表达式树长成更稳定、更符合真实语言直觉的形状。这是“小步扩展 + 及时整理”的典型下一步，也是在为长期更复杂语法打基础。
+    </section>
+
+    <section>
+      <h2>今天只做这一件事</h2>
+      <p>这节课只关注“链式表达式的结合方式”。范围严格控制在：</p>
+      <ul>
+        <li>让加减链按左结合生长</li>
+        <li>让乘除链按左结合生长</li>
+        <li>保持已有优先级和括号支持</li>
+        <li>继续只在当前表达式系统内部整理，不扩展新语法</li>
+      </ul>
+      <p>也就是说，这节课最关心的是：</p>
+      <pre><code>1 + 2 + 3</code></pre>
+      <p>更自然的树形应该是：</p>
+      <pre><code>(1 + 2) + 3</code></pre>
+      <p>而不是：</p>
+      <pre><code>1 + (2 + 3)</code></pre>
+    </section>
+
+    <section>
+      <h2>为什么现在要关心“结合性”</h2>
+      <p>你目前的实现已经能得到很多正确数值结果，但树的形状仍然很重要。因为：</p>
+      <ul>
+        <li>不是所有操作符都像加法、乘法那样“结果碰巧一样”</li>
+        <li><code>10 - 3 - 2</code> 和 <code>10 - (3 - 2)</code> 的结果不同</li>
+        <li><code>20 / 5 / 2</code> 和 <code>20 / (5 / 2)</code> 的结果也不同</li>
+      </ul>
+      <p>所以这一课是在帮你把 parser 从“能链起来”继续推进到“链的形状也更合理”。</p>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol class="steps">
+        <li>让当前层先拿到第一个左边结果</li>
+        <li>只要后面还是这一层负责的操作符，就继续解析右边一个单位</li>
+        <li>把“当前结果”更新成新的左边</li>
+        <li>继续循环，而不是递归把整条链都塞到右边</li>
+      </ol>
+      <p>也就是说，这一课最自然的整理方向通常会更接近：</p>
+      <pre><code>while 后面还是我这一层的操作符:
+    取一个右边
+    current = Binary(current, op, right)</code></pre>
+      <p>重点不是一定要写成标准模板，而是让“当前结果不断向左累积”。</p>
+    </section>
+
+    <section>
+      <h2>本课目标输入 / 输出</h2>
+      <pre><code>输入程序:
+print 10 - 3 - 2;
+
+目标结构:
+(10 - 3) - 2
+
+最终输出:
+5</code></pre>
+      <pre><code>输入程序:
+print 20 / 5 / 2;
+
+目标结构:
+(20 / 5) / 2
+
+最终输出:
+2</code></pre>
+      <pre><code>输入程序:
+print 1 + 2 * 3 + 4;
+
+目标：
+优先级仍然正确，链式结合也更自然
+最终输出 11</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：为什么 `10 - 3 - 2` 需要左结合？</h2>
+      <p>下面哪一个才是更合理的默认解析方式？</p>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. <code>(10 - 3) - 2</code></label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. <code>10 - (3 - 2)</code></label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 两种都无所谓，因为减法总是一样</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：这一课更像在整理哪一件事？</h2>
+      <p>当前这一步最主要是在整理什么？</p>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 新增大量语法能力</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 表达式链的树形生长方式</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. scanner 的字符分类逻辑</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写下你的最小结合性样例</h2>
+      <p>请写下你准备用来验证左结合是否成立的一个最小样例，以及你预期的结果。</p>
+      <textarea id="self-check" placeholder="例如：&#10;输入: print 10 - 3 - 2;&#10;预期输出: 5&#10;结构: (10 - 3) - 2"></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li>你的加减链已经按左结合生长</li>
+        <li>你的乘除链已经按左结合生长</li>
+        <li>你的优��级和括号能力仍然保持正确</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课故意不做什么</h2>
+      <ul>
+        <li>先不引入比较运算或逻辑运算</li>
+        <li>先不加入赋值表达式</li>
+        <li>先不同时整理 scanner / evaluator</li>
+        <li>先不扩展语句系统</li>
+      </ul>
+      <p>这一课只做一件事：让链式表达式树长得更合理。</p>
+    </section>
+
+    <section>
+      <h2>卡住时优先检查这 4 件事</h2>
+      <ul>
+        <li>你是不是仍然把整条剩余表达式一次性递归到右边？</li>
+        <li>你是不是没有把“当前累计结果”更新成新的左边？</li>
+        <li>你是不是修好了左结合，却把优先级层次弄乱了？</li>
+        <li>你是不是还没先拿 <code>10 - 3 - 2</code> 和 <code>20 / 5 / 2</code> 做验证？</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>本课后的观察点：</strong>
+      完成这一课后，你的 parser 将不只是“支持链”，还会开始构造更符合真实语言默认规则的表达式树。这会让后面继续扩展操作符系统时少很多隐患。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://craftinginterpreters.com/parsing-expressions.html" target="_blank" rel="noreferrer">Crafting Interpreters — Parsing Expressions</a>：结合优先级层次一起理解表达式的默认结合方式。</li>
+        <li><a href="https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing" target="_blank" rel="noreferrer">Parsing Expressions by Precedence Climbing</a>：帮助理解表达式链为什么不应简单地一直递归到右边。</li>
+      </ul>
+      <p>如果你在把右递归链改成更自然的左结合结构时卡住了，把新的 `parse_add_sub()` / `parse_mul_div()` 贴给我，我们继续一起拆。</p>
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0017-left-associative-expression-trees.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'a') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> 减法和除法能最清楚地暴露结合性问题，所以默认左结合非常重要。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 这节课的关键正是让表达式树不要总是往右边递归堆叠。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 当前课题主要是在整理表达式链的树形构造方式，而不是增加一批新语法。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 这一步主要是 parser 结构继续成熟，不是 scanner 或新语法扩展。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写出一个最小结合性样例。</strong>'); return; }
+      const ok = value.includes('-') || value.includes('/');
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 减法和除法是验证左结合是否正确的最好样例。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够聚焦。</strong> 这一课最好先用减法链或除法链验证结合性。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>

@@ -151,37 +151,35 @@ fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
 }
 
 fn parse_mul_div(tokens: &Vec<Token>, i: &mut usize) -> Expr {
-    let l = parse_primary(tokens, i);
-    let t = tokens.index(*i);
-    if matches!(t, Token::Star) || matches!(t, Token::Slash) {
+    let mut result = parse_primary(tokens, i);
+    let mut t = tokens.index(*i);
+    while matches!(t, Token::Star) || matches!(t, Token::Slash) {
         *i += 1;
-        let r = parse_mul_div(tokens, i);
-        Expr::Binary {
-            left: Box::new(l),
+        let r = parse_primary(tokens, i);
+        result = Expr::Binary {
+            left: Box::new(result),
             op: t.clone(),
             right: Box::new(r),
-        }
-    } else {
-        log!("invalid token:{t:?}");
-        l
+        };
+        t = tokens.index(*i);
     }
+    result
 }
 
 fn parse_add_sub(tokens: &Vec<Token>, i: &mut usize) -> Expr {
-    let l = parse_mul_div(tokens, i);
-    let t = tokens.index(*i);
-    if matches!(t, Token::Plus) || matches!(t, Token::Minus) {
+    let mut result = parse_mul_div(tokens, i);
+    let mut t = tokens.index(*i);
+    while matches!(t, Token::Plus) || matches!(t, Token::Minus) {
         *i += 1;
-        let r = parse_add_sub(tokens, i);
-        Expr::Binary {
-            left: Box::new(l),
+        let r = parse_mul_div(tokens, i);
+        result = Expr::Binary {
+            left: Box::new(result),
             op: t.clone(),
             right: Box::new(r),
-        }
-    } else {
-        log!("invalid token:{t:?}");
-        l
+        };
+        t = tokens.index(*i);
     }
+    result
 }
 
 fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Expr {
@@ -279,7 +277,7 @@ fn eval_program(program: &Program) {
         match stmt {
             Stmt::Print { expr } => {
                 let result = eval_expr(expr, &env);
-                print!("{result}")
+                print!("{result}\n")
             }
             Stmt::Let { name, expr } => {
                 let result = eval_expr(expr, &env);
@@ -441,7 +439,7 @@ mod tests {
         log!("program:{program:?}");
         assert!(matches!(&program.stmts[0], Stmt::Print {
                 expr: Expr::Binary { left, op, right },
-            } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::Plus) && matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2)) && matches!(op, Token::Plus) && matches!(right.as_ref(),Expr::Number(3)))
+            } if matches!(right.as_ref(),Expr::Number(3)) && matches!(op,Token::Plus) && matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op, Token::Plus) && matches!(right.as_ref(),Expr::Number(2)))
         ));
     }
 
@@ -451,7 +449,7 @@ mod tests {
         log!("program:{program:?}");
         assert!(matches!(&program.stmts[0], Stmt::Print {
                 expr: Expr::Binary { left, op, right },
-            } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::Star) && matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2)) && matches!(op, Token::Star) && matches!(right.as_ref(),Expr::Number(3)))
+            } if matches!(right.as_ref(),Expr::Number(3)) && matches!(op,Token::Star) && matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op, Token::Star) && matches!(right.as_ref(),Expr::Number(2)))
         ));
     }
 
@@ -461,7 +459,7 @@ mod tests {
         log!("program:{program:?}");
         assert!(matches!(&program.stmts[0], Stmt::Print {
                 expr: Expr::Binary { left, op, right },
-            } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::Plus) && matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2))&& matches!(op,Token::Star) && matches!(right.as_ref(),Expr::Number(3))) && matches!(op, Token::Plus) && matches!(right.as_ref(),Expr::Number(4)))
+            } if matches!(right.as_ref(),Expr::Number(4)) && matches!(op,Token::Plus) && matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2))&& matches!(op,Token::Star) && matches!(right.as_ref(),Expr::Number(3))) && matches!(op, Token::Plus) && matches!(left.as_ref(),Expr::Number(1)))
         ));
     }
 }
