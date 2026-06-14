@@ -2,6 +2,8 @@
 
 ## Knowledge
 
+### Foundations: interpreters, compilers, and mental models
+
 - [Book: _Crafting Interpreters_ — Robert Nystrom](https://craftinginterpreters.com/)
   高质量、可直接上手的解释器实现教材。Use for: 从零实现词法分析、语法分析、AST、解释执行，以及设计最小语言原型。
 - [Book: _Essentials of Compilation_ — Jeremy G. Siek](https://mitpress.mit.edu/9780262047760/essentials-of-compilation/)
@@ -12,6 +14,8 @@
   以 Rust 为宿主语言，讨论解释器/虚拟机实现中会遇到的内存管理、抽象边界和工程问题。Use for: 把当前 Rust 实现继续扩展到更完整的语言系统。
 - [Book: _Structure and Interpretation of Computer Programs_](https://sarabander.github.io/sicp/)
   经典教材，帮助理解语言设计、求值模型与抽象。Use for: 建立“语言为什么这样工作”的深层心智模型。
+
+### Language design principles and small-language thinking
 - [Talk/Essay: “Growing a Language” — Guy L. Steele Jr.](https://www.cs.virginia.edu/~evans/cs655/readings/steele.pdf)
   从语言如何“长出来”的角度讨论核心能力、可组合抽象和扩展路径。Use for: 判断当前阶段是该加入一个硬编码语法特性，还是先建立一个能承载后续扩展的核心机制。
 - [Paper: “Hints on Programming Language Design” — C. A. R. Hoare](https://flint.cs.yale.edu/cs428/doc/HintsPL.pdf)
@@ -32,6 +36,8 @@
   以 Racket 为工具讲 language-oriented programming，适合从设计小语言的角度看“为什么要做一门语言”。Use for: 训练“先定义语言边界和使用场景，再决定语法和实现”的思维方式。
 - [Book: _Compilers: Principles, Techniques, and Tools_](https://en.wikipedia.org/wiki/Compilers:_Principles,_Techniques,_and_Tools)
   编译原理经典参考。Use for: 需要系统查阅词法、语法、语义分析与代码生成概念时。
+
+### Incremental growth, staging, and educational compiler structure
 - [Project: _chibicc_ — Rui Ueyama](https://github.com/rui314/chibicc)
   通过大量小提交把一个极小 C 编译器逐步长成可自举实现。Use for: 学习“真实语言如何沿着增量提交一路成长到自举”的工程节奏。
 - [Project: _CC500_](https://github.com/8l/cc500)
@@ -60,12 +66,16 @@
   把编译器拆成许多小 pass，每个 pass 都有明确的输入/输出语言。Use for: 防止语言增长后 parser、AST、语义分析和执行逻辑混成一团；尤其适合规划中间表示和特性降级。
 - [Course Notes: “IMP and Operational Semantics” — UT Austin CS 345H](https://www.cs.utexas.edu/~bornholt/courses/cs345h-24sp/lectures/4-operational/)
   用小命令式语言 IMP 讲 operational semantics、状态和控制流。Use for: 在加入赋值、条件、循环前，先写清楚语句如何改变状态、表达式是否有副作用、控制流如何终止或继续。
+
+### Bootstrapping and self-hosting path
 - [Project: _MicroJack_](https://courses.cs.washington.edu/courses/cse390b/20sp/projects/microjack.html)
   一个更小的教学语言/项目子集，保留变量、赋值、简单运算、条件、循环和 I/O。Use for: 观察“介于最小闭环与编译器可表达能力之间”的课程化能力边界。
 - [Course: _Nand2Tetris Project 9 / Jack_](https://www.nand2tetris.org/project09)
   展示一个简单但真实的高级语言及其配套小系统如何作为教学落点。Use for: 参考“小语言要长成更完整系统时，哪些能力会很快变得必要”。
 - [Project Collection: _PL Zoo_](https://github.com/andrejbauer/plzoo)
   收集多个小语言实现，适合横向比较特性选择如何影响解释器/编译器结构。Use for: 做语言特性取舍时参考不同 prior art。
+
+### Expression parsing techniques
 - [Article: “Parsing Expressions by Precedence Climbing” — Eli Bendersky](https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing)
   清晰解释表达式解析。Use for: 学习如何实现运算符优先级和结合性。
 - [Article: “Pratt Parsers: Expression Parsing Made Easy” — Bob Nystrom](https://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/)
@@ -73,22 +83,30 @@
 
 ## Wisdom (Communities)
 
+### Practice-oriented language design communities
+
 - [r/ProgrammingLanguages](https://www.reddit.com/r/ProgrammingLanguages/)
   活跃且相关度高的社区。Use for: 看别人如何设计小语言、获得实现思路、了解常见坑。
 - [LangDev Stack Exchange](https://langdev.stackexchange.com/)
   适合讨论语言设计与实现细节。Use for: 当你遇到具体的语法、语义或实现取舍问题时提问或检索。
 - [Lambda the Ultimate](https://lambda-the-ultimate.org/)
   老牌 programming languages weblog，偏语言设计、语义、类型系统和 PL 研究讨论。Use for: 查找语言设计思想、历史讨论和高质量争议；适合在做较大设计取舍前扩展视野。
+
+### Research communities and conference entry points
 - [ACM SIGPLAN / PLDI](https://www.sigplan.org/Conferences/PLDI/)
   Programming Language Design and Implementation 方向的核心会议入口。Use for: 当某个设计问题进入“这个特性如何影响实现、优化、运行时或工具链”层面时查找更正式的研究参考。
 - [ACM SIGPLAN / POPL](https://www.sigplan.org/Conferences/POPL/)
   Principles of Programming Languages 方向的核心会议入口。Use for: 当需要更严谨地理解语义、类型系统、程序等价、效果系统等概念时查找研究脉络。
+
+### Design process and evolution references
 - [Rust RFCs](https://github.com/rust-lang/rfcs)
   Rust 语言和生态重大变化的 RFC 记录。Use for: 学习成熟语言如何描述 motivation、rationale、drawbacks、alternatives 和 unresolved questions，并把它迁移成项目内 DESIGN_NOTES 模板。
 - [Swift Evolution](https://swift.org/swift-evolution/)
   Swift 语言、标准库和包管理器演化提案集合。Use for: 观察真实语言如何把语法特性、源兼容性、迁移路径和未来方向写进同一份设计提案。
 - [PEP 1: PEP Purpose and Guidelines](https://peps.python.org/pep-0001/)
   Python Enhancement Proposal 的目的和写作规范。Use for: 借鉴“每个语言特性都要写清楚问题、规范和理由”的轻量流程，避免小语言阶段随手加功能。
+
+### Self-hosting and toolchain design discussions
 - [Discussion: “What are the benefits to self-hosting compilers?” — LangDev Stack Exchange](https://langdev.stackexchange.com/questions/912/what-are-the-benefits-to-self-hosting-compilers)
   适合看到社区如何讨论 self-hosting 的真实收益与代价，而不是把它神化成默认终点。Use for: 在长期路线设计时校准“为什么追求自举”。
 - [Discussion: “What’s the smallest subset of language features you need to bootstrap its compiler?” — Stack Overflow](https://stackoverflow.com/questions/47356651/whats-the-smallest-subset-of-language-features-you-need-to-bootstrap-its-compil)
