@@ -11,6 +11,7 @@ description: Diagnose and improve an existing GitHub Copilot skill or its surrou
 2. Start from the concrete problems the user identified, not from a generic rewrite goal.
 3. Use available context such as nearby skills, repository purpose, current workflow, recent conversation state, and any earlier use of the target skill in this session to infer what the skill should optimize for.
 4. Before editing, clarify the actual problem: confirm whether the issue is really in the target skill, in repository-local workflow, in current session instructions, or in higher-level agent behavior.
+4.5. If the user asks to "record", "persist", or "land" a reflection, first classify the information type before choosing a file: skill workflow guidance belongs in the relevant skill or instruction file; project collaboration preferences belong in repository notes; project goals and constraints belong in mission/design files.
 5. If the problem is still ambiguous, discuss it with the user first instead of editing immediately.
 6. Edit only what is needed to fix the confirmed problem without changing the intended capability unless the user asks for a scope change.
 7. Keep the result concise, specific, and easy for an agent to invoke correctly.
@@ -37,6 +38,7 @@ Do not assume the fix belongs in the skill file. Sometimes the right fix is to a
 
 Check:
 - what exact problem the user wants fixed
+- what kind of information is being changed: skill behavior, project goal or design constraint, collaboration preference, or repository content/workflow guidance
 - whether the problem belongs to the target skill itself or to surrounding workflow/instructions
 - whether the current session already contains an example of the target skill being invoked or producing output
 - frontmatter fields such as `name`, `description`, and optional flags
@@ -63,6 +65,8 @@ Choose the smallest correct target for the fix:
 - a referenced local file
 - another workspace instruction/configuration file
 - no file yet; clarify with the user first
+
+When the user asks to persist a reflection, do not choose the destination file based only on importance. Choose it based on file responsibility.
 
 Do not default to editing `description` and body if the problem is really elsewhere.
 
