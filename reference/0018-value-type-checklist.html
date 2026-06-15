@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0018 · Value 类型引入清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0018</div>
+    <h1>Value 类型引入清单</h1>
+    <p>用途：在语言第一次把运行时结果从裸整数提升为统一值模型时，快速确认解释器接口是否已经整理到位。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>本课后应做到</h2>
+        <ul>
+          <li>定义了 <code>Value</code> 类型</li>
+          <li><code>eval_expr()</code> 返回 <code>Value</code></li>
+          <li>环境保存 <code>Value</code></li>
+          <li>已有整数程序仍然正常工作</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>当前仍不要求</h2>
+        <ul>
+          <li>布尔字面量</li>
+          <li>比较运算</li>
+          <li><code>if</code> / <code>while</code></li>
+          <li>完整类型系统</li>
+        </ul>
+      </section>
+    </div>
+
+    <h2>最小思路</h2>
+    <pre><code>从：
+  eval_expr(...) -> i64
+  env: HashMap&lt;String, i64&gt;
+
+过渡到：
+  eval_expr(...) -> Value
+  env: HashMap&lt;String, Value&gt;
+
+当前最小 Value：
+  Value::Integer(i64)</code></pre>
+
+    <h2>验证样例</h2>
+    <ul>
+      <li><code>print 1 + 2;</code> → 输出 <code>3</code></li>
+      <li><code>let x = 5; print x;</code> → 输出 <code>5</code></li>
+    </ul>
+
+    <h2>最容易犯的 3 个错误</h2>
+    <ul>
+      <li>只定义了 <code>Value</code>，但 evaluator 仍然返回裸整数</li>
+      <li>环境仍然保存 <code>i64</code>，导致 evaluator 与环境类型不一致</li>
+      <li>整数算术分支没有正确包装回 <code>Value::Integer</code></li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0018-value-type-checklist.html</code></p>
+  </main>
+</body>
+</html>

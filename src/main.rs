@@ -6,6 +6,12 @@ macro_rules! log {
     };
 }
 
+#[derive(Debug, Clone)]
+enum Value {
+    Integer(i64),
+    Boolean(bool),
+}
+
 #[derive(Debug)]
 struct Program {
     stmts: Vec<Stmt>,
@@ -246,27 +252,33 @@ fn parse(input: &str) -> Program {
     result
 }
 
-fn eval_expr(expr: &Expr, env: &HashMap<String, i64>) -> i64 {
+fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
     match expr {
-        Expr::Number(i) => *i,
+        Expr::Number(i) => Value::Integer(*i),
         Expr::Binary { left, op, right } => {
             let l = eval_expr(left, env);
             let r = eval_expr(right, env);
-            match op {
-                Token::Plus => l + r,
-                Token::Minus => l - r,
-                Token::Star => l * r,
-                Token::Slash => l / r,
+            match (&l, &r) {
+                (Value::Integer(lv), Value::Integer(rv)) => match op {
+                    Token::Plus => Value::Integer(lv + rv),
+                    Token::Minus => Value::Integer(lv - rv),
+                    Token::Star => Value::Integer(lv * rv),
+                    Token::Slash => Value::Integer(lv / rv),
+                    _ => {
+                        log!("Unsupported token:{op:?}");
+                        Value::Integer(0)
+                    }
+                },
                 _ => {
-                    log!("Unsupported token:{op:?}");
-                    0
+                    log!("Unsupported Binary Operation:{l:?} {op:?} {r:?}");
+                    Value::Integer(0)
                 }
             }
         }
-        Expr::Ident(name) => *env.get(name).expect("Can't get identifier"),
+        Expr::Ident(name) => env.get(name).expect("Can't get identifier").clone(),
         _ => {
             log!("Unavailable expr:{expr:?}");
-            0
+            Value::Integer(0)
         }
     }
 }
@@ -277,7 +289,12 @@ fn eval_program(program: &Program) {
         match stmt {
             Stmt::Print { expr } => {
                 let result = eval_expr(expr, &env);
-                print!("{result}\n")
+                match result{
+                    Value::Integer(i) =>print!("{i}\n"),
+                    Value::Boolean(b) => print!("{b}\n"),
+                    _ => print!("Invalid value:{result:?}")
+                }
+                
             }
             Stmt::Let { name, expr } => {
                 let result = eval_expr(expr, &env);
@@ -403,7 +420,7 @@ mod tests {
             },
             &HashMap::new(),
         );
-        assert!(matches!(result, 12));
+        assert!(matches!(result, Value::Integer(i)if i ==12));
     }
 
     #[test]
