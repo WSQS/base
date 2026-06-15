@@ -39,6 +39,7 @@ A lesson should be **beautiful** — clean, readable typography and layout — s
 The lesson should teach ONE THING only. It should be completable very quickly - but give the user a tangible win that they can build on. It should be directly tied to the mission, and should be in the user's zone of proximal development.
 
 Make opening a lesson as easy as possible — ideally a single CLI command the user can run to open the HTML file in their browser.
+If you create or replace lesson/reference HTML files during a teaching task, run the corresponding local `start` command as part of completing that task unless the user says not to.
 
 Treat a lesson as incomplete until the relevant teaching workspace state is updated, especially the corresponding `./learning-records/*.md` entry.
 
@@ -117,3 +118,18 @@ Glossaries, in particular, are an essential reference. Once one is created, it s
 ## `NOTES.md`
 
 The user will sometimes express preferences of how they want to be taught, or things you should keep in mind. This is the place to record those preferences, so you can refer back to them when designing lessons or working with the user.
+
+## HTML open workflow
+
+When you create or replace a lesson or reference HTML file:
+
+1. Finish writing the HTML file.
+2. Run the matching local open command immediately so the file opens in the browser.
+3. Mention briefly that you opened it.
+
+Examples:
+
+- `start .\lessons\0001-some-lesson.html`
+- `start .\reference\0001-some-reference.html`
+
+Do not stop at merely printing the command when the task includes generating the HTML file.
