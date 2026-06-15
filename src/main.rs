@@ -40,8 +40,12 @@ enum Token {
     Minus,
     Star,
     Slash,
+    EqualEqual,
     Less,
     Greater,
+    LessEqual,
+    GreaterEqual,
+    BangEqual,
     LParen,
     RParen,
     Equal,
@@ -64,7 +68,11 @@ fn main() {
 fn scan(input: &str) -> Vec<Token> {
     let mut result = Vec::new();
     let mut value: String = "".to_string();
-    for c in input.chars() {
+    let chars: Vec<char> = input.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars.index(i);
+        i += 1;
         let mut flush = || {
             if !value.is_empty() {
                 let head = value.chars().nth(0);
@@ -86,36 +94,67 @@ fn scan(input: &str) -> Vec<Token> {
         };
         if c.is_alphanumeric() {
             value = value + &c.to_string();
-        } else if c == ' ' {
+        } else if *c == ' ' {
             flush();
-        } else if c == '+' {
+        } else if *c == '+' {
             flush();
             result.push(Token::Plus)
-        } else if c == '-' {
+        } else if *c == '-' {
             flush();
             result.push(Token::Minus)
-        } else if c == '*' {
+        } else if *c == '*' {
             flush();
             result.push(Token::Star)
-        } else if c == '/' {
+        } else if *c == '/' {
             flush();
             result.push(Token::Slash)
-        } else if c == '<' {
+        } else if *c == '<' {
             flush();
-            result.push(Token::Less);
-        } else if c == '>' {
+            let c = chars.index(i);
+            i += 1;
+            if *c == '=' {
+                result.push(Token::LessEqual);
+            } else {
+                i -= 1;
+                result.push(Token::Less);
+            }
+        } else if *c == '>' {
             flush();
-            result.push(Token::Greater);
-        } else if c == '(' {
+            let c = chars.index(i);
+            i += 1;
+            if *c == '=' {
+                result.push(Token::GreaterEqual);
+            } else {
+                i -= 1;
+                result.push(Token::Greater);
+            }
+        } else if *c == '(' {
             flush();
             result.push(Token::LParen)
-        } else if c == ')' {
+        } else if *c == ')' {
             flush();
             result.push(Token::RParen)
-        } else if c == '=' {
+        } else if *c == '=' {
             flush();
-            result.push(Token::Equal)
-        } else if c == ';' {
+            let c = chars.index(i);
+            i += 1;
+            if *c == '=' {
+                result.push(Token::EqualEqual);
+            } else {
+                i -= 1;
+                result.push(Token::Equal);
+            }
+        } else if *c == '!' {
+            flush();
+            let c = chars.index(i);
+            i += 1;
+            if *c == '=' {
+                result.push(Token::BangEqual);
+            } else {
+                i -= 1;
+                log!("Invalid char: {c:?}")
+            }
+        } else if *c == ';' {
             flush();
             result.push(Token::Semicolon)
         } else {
@@ -495,5 +534,19 @@ mod tests {
         assert!(matches!(tokens[2],Token::Number(i) if i == 6));
         assert!(matches!(tokens[3], Token::Less));
         assert!(matches!(tokens[4],Token::Number(i) if i == 7));
+    }
+
+        #[test]
+    fn test_double_char_comparison() {
+        let tokens = scan("1 == 2 != 3 <= 4 >= 5");
+        assert!(matches!(tokens[0],Token::Number(i) if i == 1));
+        assert!(matches!(tokens[1], Token::EqualEqual));
+        assert!(matches!(tokens[2],Token::Number(i) if i == 2));
+        assert!(matches!(tokens[3], Token::BangEqual));
+        assert!(matches!(tokens[4],Token::Number(i) if i == 3));
+        assert!(matches!(tokens[5], Token::LessEqual));
+        assert!(matches!(tokens[6],Token::Number(i) if i == 4));
+        assert!(matches!(tokens[7], Token::GreaterEqual));
+        assert!(matches!(tokens[8],Token::Number(i) if i == 5));
     }
 }
