@@ -26,6 +26,7 @@ enum Stmt {
 #[derive(Debug)]
 enum Expr {
     Number(i64),
+    Boolean(bool),
     Ident(String),
     Binary {
         left: Box<Expr>,
@@ -54,6 +55,8 @@ enum Token {
     Ident(String),
     Print,
     Let,
+    True,
+    False,
 }
 
 fn main() {
@@ -85,6 +88,10 @@ fn scan(input: &str) -> Vec<Token> {
                         result.push(Token::Let);
                     } else if value == "print" {
                         result.push(Token::Print);
+                    } else if value == "true" {
+                        result.push(Token::True);
+                    } else if value == "false" {
+                        result.push(Token::False);
                     } else {
                         result.push(Token::Ident(value.clone()));
                     }
@@ -172,6 +179,10 @@ fn scan(input: &str) -> Vec<Token> {
                 result.push(Token::Let);
             } else if value == "print" {
                 result.push(Token::Print);
+            } else if value == "true" {
+                result.push(Token::True);
+            } else if value == "false" {
+                result.push(Token::False);
             } else {
                 result.push(Token::Ident(value));
             }
@@ -185,6 +196,8 @@ fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
     *i += 1;
     match t {
         Token::Number(i) => Expr::Number(*i),
+        Token::True => Expr::Boolean(true),
+        Token::False => Expr::Boolean(false),
         Token::Ident(name) => Expr::Ident(name.clone()),
         Token::LParen => {
             let e = parse_expr(tokens, i);
@@ -324,6 +337,7 @@ fn parse(input: &str) -> Program {
 fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
     match expr {
         Expr::Number(i) => Value::Integer(*i),
+        Expr::Boolean(b) => Value::Boolean(*b),
         Expr::Binary { left, op, right } => {
             let l = eval_expr(left, env);
             let r = eval_expr(right, env);
@@ -622,6 +636,20 @@ mod tests {
         eval_program_with_env(&program, &mut env);
         assert!(matches!(
             env.get("x").expect("Nox variable x"),
+            Value::Boolean(b) if matches!(b,false)
+        ));
+    }
+    #[test]
+    fn test_boolean_literals() {
+        let program = parse("let x = true; let y = false;");
+        let mut env = HashMap::new();
+        eval_program_with_env(&program, &mut env);
+        assert!(matches!(
+            env.get("x").expect("Nox variable x"),
+            Value::Boolean(b) if matches!(b,true)
+        ));
+        assert!(matches!(
+            env.get("y").expect("Nox variable y"),
             Value::Boolean(b) if matches!(b,false)
         ));
     }
