@@ -333,6 +333,12 @@ fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
                     Token::Minus => Value::Integer(lv - rv),
                     Token::Star => Value::Integer(lv * rv),
                     Token::Slash => Value::Integer(lv / rv),
+                    Token::EqualEqual => Value::Boolean(lv == rv),
+                    Token::BangEqual => Value::Boolean(lv != rv),
+                    Token::Less => Value::Boolean(lv < rv),
+                    Token::Greater => Value::Boolean(lv > rv),
+                    Token::LessEqual => Value::Boolean(lv <= rv),
+                    Token::GreaterEqual => Value::Boolean(lv >= rv),
                     _ => {
                         log!("Unsupported token:{op:?}");
                         Value::Integer(0)
@@ -352,8 +358,7 @@ fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
     }
 }
 
-fn eval_program(program: &Program) {
-    let mut env = HashMap::new();
+fn eval_program_with_env(program: &Program, env: &mut HashMap<String, Value>) {
     for stmt in &program.stmts {
         match stmt {
             Stmt::Print { expr } => {
@@ -373,6 +378,11 @@ fn eval_program(program: &Program) {
             }
         }
     }
+}
+
+fn eval_program(program: &Program) {
+    let mut env = HashMap::new();
+    eval_program_with_env(program, &mut env);
 }
 
 #[cfg(test)]
@@ -602,6 +612,17 @@ mod tests {
                     right.as_ref(),
                     Expr::Number(2))
             )
+        ));
+    }
+
+    #[test]
+    fn test_comparison_eval() {
+        let program = parse("let x = 1 == 2;");
+        let mut env = HashMap::new();
+        eval_program_with_env(&program, &mut env);
+        assert!(matches!(
+            env.get("x").expect("Nox variable x"),
+            Value::Boolean(b) if matches!(b,false)
         ));
     }
 }

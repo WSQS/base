@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0022 · 在 evaluator 中计算比较表达式</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.05rem; margin: 0 0 10px; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+    .box, .exercise {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .goal { background: #eff6ff; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    ul, ol { padding-left: 22px; }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0022</div>
+    <h1>在 evaluator 中计算比较表达式</h1>
+    <p class="lede">这一课把比较表达式从“只是 AST”继续推进到“真正求值”：当左右两边是整数时，比较运算应该返回 <code>Value::Boolean</code>。</p>
+
+    <section class="box goal">
+      <strong>这一步为什么重要：</strong>
+      第 18 课引入 <code>Value</code> 的意义，到这一课会第一次真正兑现。现在 evaluator 不再总是返回整数，比较表达式将开始返回布尔结果。
+    </section>
+
+    <section>
+      <h2>本课范围</h2>
+      <ul>
+        <li>在 <code>eval_expr()</code> 中支持比较运算符：<code>&lt;</code>、<code>&gt;</code>、<code>&lt;=</code>、<code>&gt;=</code>、<code>==</code>、<code>!=</code></li>
+        <li>当左右两边都是整数时，返回 <code>Value::Boolean(true/false)</code></li>
+        <li>补上 evaluator 测试</li>
+        <li>补上最小程序级验证，例如 <code>print 1 &lt; 2;</code> 输出 <code>true</code></li>
+      </ul>
+      <p>这一课<strong>不做</strong>：</p>
+      <ul>
+        <li>不支持布尔字面量 <code>true</code> / <code>false</code></li>
+        <li>不支持逻辑运算 <code>&amp;&amp;</code> / <code>||</code></li>
+        <li>不进入 <code>if</code> 或条件语句</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课真正新增的知识点</h2>
+      <p>你现在要面对的关键变化是：</p>
+      <pre><code>同样是 Expr::Binary，不再总返回 Integer，也可能返回 Boolean。</code></pre>
+      <p>这意味着 evaluator 的二元运算分支需要开始按运算符类型区分：</p>
+      <ul>
+        <li>算术运算：返回 <code>Value::Integer</code></li>
+        <li>比较运算：返回 <code>Value::Boolean</code></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol>
+        <li>保留当前整数算术分支</li>
+        <li>在整数-整数的二元运算匹配中，加入比较运算符处理</li>
+        <li>让比较结果包装成 <code>Value::Boolean(...)</code></li>
+        <li>新增测试，验证比较求值结果和打印输出</li>
+      </ol>
+      <p>这节课重点不是引入更多语法，而是第一次真正让 <code>Value::Boolean</code> 参与运行时。</p>
+    </section>
+
+    <section>
+      <h2>目标输入 / 输出</h2>
+      <pre><code>输入:
+print 1 + 2 &lt; 4;
+print 2 * 3 == 6;
+print 5 != 5;
+
+目标输出:
+true
+true
+false</code></pre>
+      <p>如果 evaluator 做对了，当前语言就第一次拥有了真正的布尔运行时结果。</p>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：这节课为什么和第 21 课不同？</h2>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. 因为这节课开始真正计算比较结果，而不只是构造 AST</label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. 因为这节课主要在 scanner 中加入新 token</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 因为这节课直接进入 if 语句</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：比较表达式求值后应该返回什么？</h2>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 继续返回 <code>Value::Integer(0/1)</code></label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 返回 <code>Value::Boolean(true/false)</code></label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 返回字符串 <code>"true"</code> 或 <code>"false"</code></label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写下一个最小比较求值测试</h2>
+      <p>写一个最小测试样例，验证某个比较表达式会返回布尔值。</p>
+      <textarea id="self-check" placeholder="例如：&#10;let result = eval_expr(...);&#10;assert!(matches!(result, Value::Boolean(true)));"></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li>evaluator 已支持比较表达式求值</li>
+        <li>比较结果返回 <code>Value::Boolean</code></li>
+        <li>新增 evaluator / 程序级测试并通过</li>
+        <li>不引入 <code>if</code>、逻辑运算或布尔字面量</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>提醒：</strong>
+      如果你实现过程中开始思考布尔字面量、逻辑运算或条件语句，说明你已经又跨到后面的课了。先把“比较表达式如何返回布尔值”单独做稳。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://craftinginterpreters.com/evaluating-expressions.html" target="_blank" rel="noreferrer">Crafting Interpreters · Evaluating Expressions</a>：表达式求值的关键之一，是不同运算符可能返回不同种类的运行时值。</li>
+        <li><a href="https://mitpress.mit.edu/9780262062794/essentials-of-programming-languages/" target="_blank" rel="noreferrer">Essentials of Programming Languages</a>：当语言进入新的值语义时，运行时值模型会真正开始承担结构作用。</li>
+      </ul>
+      <p>如果这一步做完，后面再进入布尔字面量或条件语句，会更自然。</p>
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0022-evaluate-comparison-expressions.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'a') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> 第 21 课是 parser，第 22 课才是真正进入求值结果。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 这节课的重点是 evaluator 返回布尔值。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 这一课的关键就是让比较表达式真正返回 Value::Boolean。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 现在已经有 Value 模型了，不需要退回 0/1 或字符串。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写一个测试样例。</strong>'); return; }
+      const ok = value.includes('Value::Boolean') || value.includes('Boolean(');
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 这节课最核心的测试就是比较表达式是否返回布尔值。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够聚焦。</strong> 请直接写一个验证 Value::Boolean 的测试。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>
