@@ -81,6 +81,34 @@
 - [Article: “Pratt Parsers: Expression Parsing Made Easy” — Bob Nystrom](https://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/)
   Pratt 解析的经典入门文章。Use for: 设计可扩展表达式语法时。
 
+### Pattern matching, structured control flow, and data-directed design
+- [Manual: “Patterns” — OCaml Manual](https://ocaml.org/manual/patterns.html)
+  系统化介绍 literal、variable、constructor、tuple、record、list、or-pattern 等模式语法。Use for: 设计独立的 `Pattern` AST，并理解“模式不是表达式”的语言分层。
+- [Docs: “Basic Data Types and Pattern Matching” — OCaml](https://ocaml.org/docs/basic-data-types)
+  展示 primitive value、list、record、user-defined variant 如何与模式匹配协同工作。Use for: 规划这门语言未来如何从整数/布尔扩展到更适合结构分派的数据模型。
+- [Report: “Haskell 2010 Report — Case Expressions and Pattern Matching”](https://www.haskell.org/onlinereport/haskell2010/haskellch3.html)
+  用 `case` 表达式描述模式匹配核心语义，并展示其他匹配构造如何围绕它建立。Use for: 思考是否把未来的 `match` 作为核心控制流表达式，并让其他分支形式围绕它展开。
+- [Docs: “Pattern Matching” — Erlang](https://www.erlang.org/doc/system/patterns.html)
+  展示变量绑定、通配符与模式匹配如何成为语言运行机制的一部分。Use for: 研究“模式匹配优先”的语言如何把匹配深入到赋值、函数子句和消息处理等结构中。
+- [Docs: “Functions” — Erlang](https://www.erlang.org/doc/system/ref_man_functions.html)
+  展示函数子句按顺序尝试模式与 guard 的语义。Use for: 参考未来如果语言支持多子句函数，如何把它们统一降低为匹配内核。
+- [Guide: “Case Expressions” — Gleam Tour](https://tour.gleam.run/flow-control/case-expressions/)
+  直接把 `case` 视为最常见控制流形式之一，突出“按数据形状分派”。Use for: 参考“模式匹配优先、`if` 只是补充”的语言设计气质。
+- [Guide: “Custom Types” — Elm Guide](https://guide.elm-lang.org/types/custom_types)
+  强调先用 custom type 描述状态，再通过模式匹配消费这些状态。Use for: 观察“先建模可能状态，再写控制流”的设计路径。
+- [Guide: “Pattern Matching” — Elm Guide](https://guide.elm-lang.org/types/pattern_matching)
+  展示模式匹配如何成为处理 `Maybe`、`Result` 和自定义 variant 的默认方式。Use for: 研究当语言开始支持结构化值时，控制流如何自然转向模式分派。
+- [Book Chapter: “Enums and Pattern Matching” — The Rust Book](https://doc.rust-lang.org/book/ch06-00-enums.html)
+  展示 `enum`、`match`、穷尽性和 `if let` 的关系。Use for: 对比“模式匹配为主、`if` 为辅”的工程化折中设计。
+- [Paper: “Warnings for Pattern Matching” — Luc Maranget](https://moscova.inria.fr/~maranget/papers/warn/warn.pdf)
+  模式匹配穷尽性检查与无用分支检测的经典资料。Use for: 未来实现 `_`、constructor pattern、冗余分支警告和非穷尽匹配诊断时参考。
+- [Paper: “Compiling Pattern Matching to Good Decision Trees” — Luc Maranget](https://moscova.inria.fr/~maranget/papers/ml05e-maranget.pdf)
+  讲解如何把高层模式匹配编译成更高效的决策树。Use for: 当前阶段可作为中长期参考，帮助理解 `match` 最终如何从解释器结构走向更系统的实现。
+- [Paper: “Views: A Way for Pattern Matching to Cohabit with Data Abstraction” — Philip Wadler](https://dl.acm.org/doi/10.1145/41625.41653)
+  讨论模式匹配与数据抽象之间的张力。Use for: 在未来加入模块、抽象类型或隐藏内部表示时，提前理解模式匹配可能带来的设计压力。
+- [Book: _The Implementation of Functional Programming Languages_ — Simon Peyton Jones](https://www.microsoft.com/en-us/research/wp-content/uploads/1987/01/slpj-book-1987-small.pdf)
+  包含将高层模式定义转换为较小 `case` 内核的经典实现思路。Use for: 如果这门语言以后走向更完整的匹配系统，可参考如何把模式匹配降低为更核心的执行语义。
+
 ## Wisdom (Communities)
 
 ### Practice-oriented language design communities
