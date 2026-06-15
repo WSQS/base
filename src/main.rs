@@ -40,6 +40,8 @@ enum Token {
     Minus,
     Star,
     Slash,
+    Less,
+    Greater,
     LParen,
     RParen,
     Equal,
@@ -98,6 +100,12 @@ fn scan(input: &str) -> Vec<Token> {
         } else if c == '/' {
             flush();
             result.push(Token::Slash)
+        } else if c == '<' {
+            flush();
+            result.push(Token::Less);
+        } else if c == '>' {
+            flush();
+            result.push(Token::Greater);
         } else if c == '(' {
             flush();
             result.push(Token::LParen)
@@ -289,12 +297,11 @@ fn eval_program(program: &Program) {
         match stmt {
             Stmt::Print { expr } => {
                 let result = eval_expr(expr, &env);
-                match result{
-                    Value::Integer(i) =>print!("{i}\n"),
+                match result {
+                    Value::Integer(i) => print!("{i}\n"),
                     Value::Boolean(b) => print!("{b}\n"),
-                    _ => print!("Invalid value:{result:?}")
+                    _ => print!("Invalid value:{result:?}"),
                 }
-                
             }
             Stmt::Let { name, expr } => {
                 let result = eval_expr(expr, &env);
@@ -478,5 +485,15 @@ mod tests {
                 expr: Expr::Binary { left, op, right },
             } if matches!(right.as_ref(),Expr::Number(4)) && matches!(op,Token::Plus) && matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2))&& matches!(op,Token::Star) && matches!(right.as_ref(),Expr::Number(3))) && matches!(op, Token::Plus) && matches!(left.as_ref(),Expr::Number(1)))
         ));
+    }
+
+    #[test]
+    fn test_less_great() {
+        let tokens = scan(" 5 > 6 < 7");
+        assert!(matches!(tokens[0],Token::Number(i) if i == 5));
+        assert!(matches!(tokens[1], Token::Greater));
+        assert!(matches!(tokens[2],Token::Number(i) if i == 6));
+        assert!(matches!(tokens[3], Token::Less));
+        assert!(matches!(tokens[4],Token::Number(i) if i == 7));
     }
 }

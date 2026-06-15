@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0019 · &lt; 和 &gt; token 清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+      margin-bottom: 16px;
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0019</div>
+    <h1><code>&lt;</code> 和 <code>&gt;</code> token 清单</h1>
+    <p>用途：快速确认 scanner 是否已经支持最小比较符号 <code>&lt;</code> 与 <code>&gt;</code>。</p>
+
+    <section class="card">
+      <h2>本课后应做到</h2>
+      <ul>
+        <li><code>Token</code> 中有表示 <code>&lt;</code> 和 <code>&gt;</code> 的变体</li>
+        <li><code>scan()</code> 能识别这两个单字符运算符</li>
+        <li>新增 scanner 测试并通过</li>
+      </ul>
+    </section>
+
+    <h2>当前仍不要求</h2>
+    <ul>
+      <li>parser 理解比较表达式</li>
+      <li>evaluator 计算布尔结果</li>
+      <li><code>==</code> 与 <code>!=</code> 的双字符扫描</li>
+    </ul>
+
+    <h2>最小验证样例</h2>
+    <pre><code>let tokens = scan("1 < 2 > 3");
+
+目标 token 序列：
+[Number(1), Less, Number(2), Greater, Number(3)]</code></pre>
+
+    <h2>最容易犯的错误</h2>
+    <ul>
+      <li>只改了测试，忘了在 <code>Token</code> 中新增变体</li>
+      <li>只改了 <code>Token</code>，忘了在 <code>scan()</code> 中处理字符分支</li>
+      <li>提前去改 parser / evaluator，把这一课做大</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0019-less-than-and-greater-than-token-checklist.html</code></p>
+  </main>
+</body>
+</html>
