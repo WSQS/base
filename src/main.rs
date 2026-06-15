@@ -235,8 +235,30 @@ fn parse_add_sub(tokens: &Vec<Token>, i: &mut usize) -> Expr {
     result
 }
 
+fn parse_comparison(tokens: &Vec<Token>, i: &mut usize) -> Expr {
+    let mut result = parse_add_sub(tokens, i);
+    let mut t = tokens.index(*i);
+    while matches!(t, Token::Less)
+        || matches!(t, Token::Greater)
+        || matches!(t, Token::EqualEqual)
+        || matches!(t, Token::BangEqual)
+        || matches!(t, Token::GreaterEqual)
+        || matches!(t, Token::LessEqual)
+    {
+        *i += 1;
+        let r = parse_add_sub(tokens, i);
+        result = Expr::Binary {
+            left: Box::new(result),
+            op: t.clone(),
+            right: Box::new(r),
+        };
+        t = tokens.index(*i);
+    }
+    result
+}
+
 fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Expr {
-    let e = parse_add_sub(tokens, i);
+    let e = parse_comparison(tokens, i);
     let t = tokens.index(*i);
     if !matches!(t, Token::Semicolon) {
         log!("Expected semicolon, get{t:?}")
@@ -536,8 +558,8 @@ mod tests {
         assert!(matches!(tokens[4],Token::Number(i) if i == 7));
     }
 
-        #[test]
-    fn test_double_char_comparison() {
+    #[test]
+    fn test_double_char_comparison_scan() {
         let tokens = scan("1 == 2 != 3 <= 4 >= 5");
         assert!(matches!(tokens[0],Token::Number(i) if i == 1));
         assert!(matches!(tokens[1], Token::EqualEqual));
@@ -548,5 +570,38 @@ mod tests {
         assert!(matches!(tokens[6],Token::Number(i) if i == 4));
         assert!(matches!(tokens[7], Token::GreaterEqual));
         assert!(matches!(tokens[8],Token::Number(i) if i == 5));
+    }
+
+    #[test]
+    fn test_comparison_parse1() {
+        let program = parse("print 1 == 2;");
+        assert!(
+            matches!(&program.stmts[0],Stmt::Print { expr } if matches!(expr, Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::EqualEqual) && matches!(right.as_ref(),Expr::Number(2))))
+        );
+    }
+
+    #[test]
+    fn test_comparison_parse2() {
+        let program = parse("print 1 * 2 == 2;");
+        assert!(matches!(
+            &program.stmts[0],
+            Stmt::Print { expr }
+            if matches!(
+                expr, Expr::Binary { left, op, right }
+                if matches!(
+                    &left.as_ref(),
+                    Expr::Binary { left, op, right }
+                    if matches!(left.as_ref(),Expr::Number(1))
+                    && matches!(op,Token::Star)
+                    && matches!(right.as_ref(),Expr::Number(2))
+                )
+                && matches!(
+                    op,
+                    Token::EqualEqual)
+                && matches!(
+                    right.as_ref(),
+                    Expr::Number(2))
+            )
+        ));
     }
 }

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0021 · 比较表达式 parser 清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+      margin-bottom: 16px;
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0021</div>
+    <h1>比较表达式 parser 清单</h1>
+    <p>用途：快速确认比较运算符已经进入 parser，并占据正确的优先级层。</p>
+
+    <section class="card">
+      <h2>本课后应做到</h2>
+      <ul>
+        <li>parser 支持 <code>&lt;</code>、<code>&gt;</code>、<code>&lt;=</code>、<code>&gt;=</code>、<code>==</code>、<code>!=</code></li>
+        <li>比较运算进入 AST</li>
+        <li>比较层优先级低于加减乘除</li>
+        <li>新增 AST 测试并通过</li>
+      </ul>
+    </section>
+
+    <h2>当前仍不要求</h2>
+    <ul>
+      <li>evaluator 返回布尔值</li>
+      <li><code>print 1 &lt; 2;</code> 输出 <code>true</code></li>
+      <li><code>if</code> / 条件语句</li>
+    </ul>
+
+    <h2>最小验证样例</h2>
+    <pre><code>print 1 + 2 < 4;
+
+目标 AST：
+Binary {
+  left: Binary { 1 + 2 },
+  op: Less,
+  right: Number(4)
+}</code></pre>
+
+    <h2>最容易犯的错误</h2>
+    <ul>
+      <li>直接在现有加减层里硬塞比较运算，导致优先级混乱</li>
+      <li>比较层位置放错，让 <code>1 + 2 &lt; 4</code> 被解析成 <code>1 + (2 &lt; 4)</code></li>
+      <li>一边改 parser，一边顺手去改 evaluator，把课题做大</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0021-comparison-parser-checklist.html</code></p>
+  </main>
+</body>
+</html>

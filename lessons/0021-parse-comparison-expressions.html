@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0021 · 在 parser 中加入比较表达式层</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.05rem; margin: 0 0 10px; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+    .box, .exercise {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .goal { background: #eff6ff; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    ul, ol { padding-left: 22px; }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0021</div>
+    <h1>在 parser 中加入比较表达式层</h1>
+    <p class="lede">这一课把比较运算符第一次真正接进 parser，但仍然只停留在语法层：目标是构造出正确的 AST，而不是马上求出布尔结果。</p>
+
+    <section class="box goal">
+      <strong>这一步为什么重要：</strong>
+      scanner 现在已经认识了比较类 token。下一步最自然的推进，不是 evaluator，而是先让 parser 知道这些 token 应该如何进入表达式树，以及它们和加减乘除之间的优先级关系。
+    </section>
+
+    <section>
+      <h2>本课范围</h2>
+      <ul>
+        <li>让 parser 支持比较运算符：<code>&lt;</code>、<code>&gt;</code>、<code>&lt;=</code>、<code>&gt;=</code>、<code>==</code>、<code>!=</code></li>
+        <li>给表达式解析增加一层“比较层”</li>
+        <li>确保比较层优先级低于 <code>+ - * /</code></li>
+        <li>新增 AST 结构测试</li>
+      </ul>
+      <p>这一课<strong>不做</strong>：</p>
+      <ul>
+        <li>不让 evaluator 返回布尔值</li>
+        <li>不让 <code>print 1 &lt; 2;</code> 输出 <code>true</code></li>
+        <li>不进入 <code>if</code> 或条件语句</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课真正新增的知识点</h2>
+      <p>你现在要做的不是“支持比较功能”，而是：</p>
+      <pre><code>给表达式解析再加一层优先级。</code></pre>
+      <p>也就是说，parser 需要知道：</p>
+      <ul>
+        <li>乘除比加减更紧</li>
+        <li>加减比比较运算更紧</li>
+      </ul>
+      <p>所以像：</p>
+      <pre><code>1 + 2 &lt; 4</code></pre>
+      <p>应该被解析成：</p>
+      <pre><code>(1 + 2) &lt; 4</code></pre>
+      <p>而不是：</p>
+      <pre><code>1 + (2 &lt; 4)</code></pre>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol>
+        <li>保留现有 <code>parse_mul_div()</code> 与 <code>parse_add_sub()</code></li>
+        <li>新增一个比较层，例如 <code>parse_comparison()</code></li>
+        <li>让 <code>parse_expr()</code> 从直接调用 <code>parse_add_sub()</code>，改为调用新的比较层</li>
+        <li>新增测试，验证 AST 的根运算符已经可以是比较运算符</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>目标输入 / AST 结构</h2>
+      <pre><code>输入:
+print 1 + 2 &lt; 4;
+
+目标：
+parser 产出一棵以 Less 为根的 Binary
+其 left 是 (1 + 2)
+其 right 是 4</code></pre>
+      <pre><code>输入:
+print 2 * 3 == 6;
+
+目标：
+parser 产出一棵以 EqualEqual 为根的 Binary
+其 left 是 (2 * 3)
+其 right 是 6</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：这一课的完成标准是什么？</h2>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. <code>print 1 &lt; 2;</code> 已经输出 <code>true</code></label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. parser 已经能为比较表达式构造正确 AST，且优先级正确</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 已经支持 if 语句</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：为什么这一课先不碰 evaluator？</h2>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 因为比较表达式永远不需要求值</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 因为当前先把语法层单独走通，避免把“解析”和“求值”混在一课里</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 因为 scanner 还没完成</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写下一个你准备添加的 AST 测试</h2>
+      <p>写一个最小 parser 测试样例，验证比较运算符已经进入表达式树。</p>
+      <textarea id="self-check" placeholder="例如：&#10;let program = parse(&quot;print 1 + 2 < 4;&quot;);&#10;...断言根节点是 Less，左边是加法... "></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li>parser 已支持比较运算符进入 AST</li>
+        <li>比较层优先级低于 <code>+ - * /</code></li>
+        <li>新增 AST 测试并通过</li>
+        <li>evaluator 暂时不改</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>提醒：</strong>
+      如果你在这一课中开始实现 <code>Value::Boolean</code> 的实际求值，那就说明已经跨到下一层了。先把 parser 的比较层单独做稳。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://craftinginterpreters.com/parsing-expressions.html" target="_blank" rel="noreferrer">Crafting Interpreters · Parsing Expressions</a>：表达式 parser 的核心问题就是如何用分层结构表达优先级。</li>
+        <li><a href="https://mitpress.mit.edu/9780262062794/essentials-of-programming-languages/" target="_blank" rel="noreferrer">Essentials of Programming Languages</a>：当语言增加一种新表达式类别时，语法层与求值层通常适合分步推进。</li>
+      </ul>
+      <p>如果这一步做完，下一课再进入 evaluator 去真正计算比较结果，会清楚很多。</p>
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0021-parse-comparison-expressions.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> 这一课的目标是 AST 结构和优先级，不是布尔求值。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 当前仍然只停留在 parser 层。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 先把 parser 单独走通，能让比较表达式的结构问题更清晰。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 这节课的重点是比较层进入 parser，而不是直接求值。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写一个测试样例。</strong>'); return; }
+      const ok = value.includes('parse') && (value.includes('<') || value.includes('==') || value.includes('<=') || value.includes('>='));
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 这节课最好的验证就是比较表达式 AST 的结构是否正确。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够聚焦。</strong> 请直接写比较表达式的 parser 测试样例。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>
