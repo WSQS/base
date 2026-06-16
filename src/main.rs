@@ -24,6 +24,19 @@ enum Stmt {
 }
 
 #[derive(Debug)]
+enum Pattern {
+    Number(i64),
+    Boolean(bool),
+    Wildcard,
+}
+
+#[derive(Debug)]
+struct MatchArm {
+    pattern: Pattern,
+    value: Box<Expr>,
+}
+
+#[derive(Debug)]
 enum Expr {
     Number(i64),
     Boolean(bool),
@@ -32,6 +45,10 @@ enum Expr {
         left: Box<Expr>,
         op: Token,
         right: Box<Expr>,
+    },
+    Match {
+        subject: Box<Expr>,
+        arms: Vec<MatchArm>,
     },
 }
 
@@ -234,6 +251,62 @@ fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
             }
             e
         }
+        Token::Match => {
+            let subject = parse_expr(tokens, i);
+            let mut t_n = tokens.index(*i);
+            if matches!(t_n, Token::LBrace) {
+                *i += 1
+            } else {
+                log!("Expected left brace, get:{t_n:?}")
+            };
+            let mut arms = Vec::new();
+            t_n = tokens.index(*i);
+            while matches!(t_n, Token::Number(_))
+                || matches!(t_n, Token::True)
+                || matches!(t_n, Token::False)
+                || matches!(t_n, Token::Wildcard)
+            {
+                let pattern = match t_n {
+                    Token::Number(i) => Pattern::Number(*i),
+                    Token::True => Pattern::Boolean(true),
+                    Token::False => Pattern::Boolean(false),
+                    Token::Wildcard => Pattern::Wildcard,
+                    _ => {
+                        log!("Invalid pattern:{t_n:?}");
+                        Pattern::Boolean(false)
+                    }
+                };
+                *i += 1;
+                t_n = tokens.index(*i);
+                if matches!(t_n, Token::EqualGreater) {
+                    *i += 1
+                } else {
+                    log!("Expected equal greater, get:{t_n:?}")
+                };
+                let value = parse_expr(tokens, i);
+                arms.push(MatchArm {
+                    pattern,
+                    value: Box::new(value),
+                });
+                t_n = tokens.index(*i);
+                if matches!(t_n, Token::Comma) {
+                    *i += 1
+                } else {
+                    log!("Expected Comma, get:{t_n:?}")
+                };
+                t_n = tokens.index(*i)
+            }
+            t_n = tokens.index(*i);
+            if matches!(t_n, Token::RBrace) {
+                *i += 1
+            } else {
+                log!("Expected right brach, get:{t_n:?}")
+            };
+            Expr::Match {
+                subject: Box::new(subject),
+                arms: arms,
+            }
+        }
         _ => {
             log!("invalid token:{t:?}");
             Expr::Number(0)
@@ -299,7 +372,7 @@ fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Expr {
     let e = parse_comparison(tokens, i);
     let t = tokens.index(*i);
     if !matches!(t, Token::Semicolon) {
-        log!("Expected semicolon, get{t:?}")
+        log!("Expected semicolon, get:{t:?}")
     }
     e
 }
@@ -693,5 +766,27 @@ mod tests {
         assert!(matches!(tokens[8], Token::EqualGreater));
         assert!(matches!(tokens[9],Token::Number(i)if i == 2));
         assert!(matches!(tokens[10], Token::RBrace));
+    }
+
+    #[test]
+    fn test_parse_match() {
+        let program = parse("print match true { true => 1, _ => 2 };");
+        log!("program:{program:?}");
+        assert!(matches!(&program.stmts[0], Stmt::Print { expr }
+        if matches!(
+            expr,
+            Expr::Match { subject, arms }
+            if matches!(subject.as_ref(),Expr::Boolean(b) if *b == true)
+            && matches!(
+                &arms[0],
+                MatchArm { pattern, value }
+                if matches!(pattern, Pattern::Boolean(b) if *b == true)
+                && matches!(value.as_ref(), Expr::Number(i) if *i == 1))
+            && matches!(
+                &arms[1],
+                MatchArm { pattern, value }
+                if matches!(pattern, Pattern::Wildcard)
+                && matches!(value.as_ref(), Expr::Number(i) if *i == 2))
+        )));
     }
 }

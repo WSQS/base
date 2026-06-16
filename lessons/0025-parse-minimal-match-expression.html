@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0025 · 让 parser 识别最小 match 表达式外壳</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.05rem; margin: 0 0 10px; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+    .box, .exercise {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .goal { background: #eff6ff; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    ul, ol { padding-left: 22px; }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0025</div>
+    <h1>让 parser 识别最小 <code>match</code> 表达式外壳</h1>
+    <p class="lede">这一课不做完整匹配求值，只把 <code>match</code> 作为表达式外壳第一次接进 parser，并且引入独立的 <code>Pattern</code> AST。</p>
+
+    <section class="box goal">
+      <strong>这一步为什么重要：</strong>
+      scanner 现在已经认识了 <code>match</code> 相关 token。下一步最自然的推进，不是立刻进入 evaluator，而是先让 parser 知道：<code>match expr { pattern => expr, ... }</code> 这种结构到底如何进入 AST。
+    </section>
+
+    <section>
+      <h2>本课范围</h2>
+      <ul>
+        <li>在 AST 中新增独立的 <code>Pattern</code> 节点</li>
+        <li>在 AST 中新增最小 <code>MatchArm</code> 和 <code>Expr::Match</code>（或等价结构）</li>
+        <li>parser 能识别最小 <code>match</code> 表达式外壳</li>
+        <li>第一版只支持这些模式进入 AST：<code>true</code>、<code>false</code>、整数字面量、<code>_</code></li>
+        <li>新增 AST / parser 测试</li>
+      </ul>
+      <p>这一课<strong>不做</strong>：</p>
+      <ul>
+        <li>不做 <code>match</code> 的求值执行</li>
+        <li>不做变量绑定模式</li>
+        <li>不做 guard</li>
+        <li>不做穷尽性检查</li>
+        <li>不做多语句 arm</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课真正新增的知识点</h2>
+      <p>这节课最关键的不是语法字符，而是 AST 分层：</p>
+      <pre><code>Pattern 不属于 Expr，但 Match 表达式会同时包含 subject 表达式和 arm 模式列表。</code></pre>
+      <p>也就是说，parser 第一次要同时处理：</p>
+      <ul>
+        <li>一个待匹配的表达式 subject</li>
+        <li>一组模式分支 arm</li>
+        <li>每个 arm 的 body expression</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol>
+        <li>先定义最小 <code>Pattern</code> 枚举，只放第一版真的要支持的几种模式</li>
+        <li>定义最小 <code>MatchArm</code> 结构</li>
+        <li>在 <code>Expr</code> 中加入 <code>Match</code> 变体</li>
+        <li>给 parser 增加最小 <code>match</code> 外壳解析逻辑</li>
+        <li>新增测试，验证一段 <code>match</code> 输入已能被构造成正确 AST</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>目标输入 / AST 结构</h2>
+      <pre><code>输入:
+print match true {
+    true => 1,
+    false => 0,
+    _ => 2,
+};
+
+目标：
+parser 产出一棵 Expr::Match（或等价节点）
+其中：
+- subject = Expr::Boolean(true)
+- arms = [true => 1, false => 0, _ => 2]</code></pre>
+      <p>这一课只要求“树搭对”，不要求已经算出结果。</p>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：为什么这一课就要引入独立的 Pattern AST？</h2>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. 因为 Pattern 和 Expr 表面可能相似，但语义不同</label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. 因为 Rust 语法不允许一个 enum 里放太多节点</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 因为 match 不需要表达式</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：为什么这���课先不进入 evaluator？</h2>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 因为 match 永远不需要求值</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 因为当前先把 parser 外壳和 AST 结构单独做稳，避免再次跨层</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 因为 scanner 还没完成</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写下一个最小 match parser 测试</h2>
+      <p>写一个最小测试样例，验证一段 <code>match</code> 输入已经能被 parser 构造成正确 AST。</p>
+      <textarea id="self-check" placeholder="例如：&#10;let program = parse(&quot;print match true { true => 1, _ => 0, };&quot;);&#10;...断言得到 Expr::Match ..."></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li>AST 中已新增独立的 <code>Pattern</code> 结构</li>
+        <li>parser 已支持最小 <code>match</code> 表达式外壳</li>
+        <li>支持布尔常量、整数字面量和 <code>_</code> 模式进入 AST</li>
+        <li>新增 parser / AST 测试并通过</li>
+        <li>evaluator 暂时不改</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>提醒：</strong>
+      这节课的胜利条件不是模式匹配已经能运行，而是“<code>match</code> 的语法外壳和 AST 结构已经进入语言”。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://ocaml.org/manual/patterns.html" target="_blank" rel="noreferrer">OCaml Manual — Patterns</a>：模式是独立语法类别，而不是表达式的一个子集。</li>
+        <li><a href="https://www.haskell.org/onlinereport/haskell2010/haskellch3.html" target="_blank" rel="noreferrer">Haskell 2010 Report — Case Expressions and Pattern Matching</a>：`case` 这类匹配内核先作为表达式进入语言，是非常经典的路线。</li>
+      </ul>
+      <p>如果这一步做稳，下一课再进入 evaluator 的 match 求值时，层次就会更清楚。</p>
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0025-parse-minimal-match-expression.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'a') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> Pattern 是匹配模板，Expr 是求值代码；哪怕表面相似，也不应混成同一种 AST。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 关键不是 Rust 限制，而是语言语义分层。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 当前最重要的是先把语法外壳和 AST 结构单独做稳。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 这节课是对“单课默认只改一层”的继续实践。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写一个测试样例。</strong>'); return; }
+      const ok = value.includes('match') && value.includes('parse');
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 这节课最好的测试就是 match 输入是否已被构造成正确 AST。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够聚焦。</strong> 请直接写一个 parser 层面的 match 测试。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>
