@@ -807,7 +807,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_eval() {
+    fn test_eval_match() {
         let program = parse("let x = true;let y = match x { true => 1, _ => 2 };");
         let env = &mut HashMap::new();
         eval_program_with_env(&program, env);
