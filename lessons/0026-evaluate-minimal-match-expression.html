@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0026 · 让 evaluator 执行最小 match 表达式</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.05rem; margin: 0 0 10px; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+    .box, .exercise {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .goal { background: #eff6ff; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    ul, ol { padding-left: 22px; }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0026</div>
+    <h1>让 evaluator 执行最小 <code>match</code> 表达式</h1>
+    <p class="lede">parser 已经能把 <code>match</code> 变成 AST 树了。这一课只做一件事：让 evaluator 真正跑起来 <code>Expr::Match</code>，让 <code>match</code> 第一次产出计算结果。</p>
+
+    <section class="box goal">
+      <strong>这一步为什么重要：</strong>
+      这是你的语言第一次拥有真正意义上的<strong>控制流</strong>——根据一个值的不同，选择不同的分支结果。在这之前，所有表达式都是"算出来就是那个值"，而 <code>match</code> 第一次让程序"做选择"。
+    </section>
+
+    <section>
+      <h2>本课范围</h2>
+      <ul>
+        <li>在 <code>eval_expr</code> 中为 <code>Expr::Match</code> 添加求值分支</li>
+        <li>先求值 subject 表达式，拿到一个 <code>Value</code></li>
+        <li>按顺序逐个尝试每个 arm 的 pattern 是否匹配</li>
+        <li>第一个匹配成功的 arm，对其 body 表达式求值并返回结果</li>
+        <li><code>_</code> 通配模式匹配任何值</li>
+        <li>新增 evaluator 测试</li>
+      </ul>
+      <p>这一课<strong>不做</strong>：</p>
+      <ul>
+        <li>不做变量绑定模式（如 <code>x => ...</code> 绑定名字）</li>
+        <li>不做 guard（如 <code>x if x > 0 => ...</code>）</li>
+        <li>不做穷尽性检查（编译期判断是否所有情况都覆盖）</li>
+        <li>不改 scanner，不改 parser，不改 AST 结构</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>核心知识：模式匹配的求值规则</h2>
+      <p><code>match</code> 的求值其实只有两条简单规则：</p>
+      <ol>
+        <li><strong>先算 subject，再匹配</strong>：先对 <code>match</code> 后面那个表达式求值，得到一个具体的值。然后拿这个值去逐个 arm 试。</li>
+        <li><strong>从上到下，第一个匹配就返回</strong>：按 arm 书写顺序逐个检查 pattern。第一个能匹配的 arm 胜出，对它的 body 求值，整个 <code>match</code> 的结果就是它。<code>_</code> 匹配任何值，通常放在最后当兜底。</li>
+      </ol>
+      <pre><code>// 伪代码描述求值逻辑
+let subject_value = eval(subject, env);
+for arm in arms:
+    if pattern_matches(arm.pattern, subject_value):
+        return eval(arm.body, env);
+// 如果没有 arm 匹配，返回一个默认值或报错</code></pre>
+    </section>
+
+    <section>
+      <h2>模式如何匹配值</h2>
+      <p>这一课只有三种 pattern，匹配规则非常直接：</p>
+      <ul>
+        <li><code>Pattern::Number(n)</code> 匹配 <code>Value::Integer(v)</code> 当且仅当 <code>n == v</code></li>
+        <li><code>Pattern::Boolean(b)</code> 匹配 <code>Value::Boolean(v)</code> 当且仅当 <code>b == v</code></li>
+        <li><code>Pattern::Wildcard</code> 匹配任何 <code>Value</code>，永远成功</li>
+      </ul>
+      <p>类型不同（比如拿 <code>Number(1)</code> 去匹配布尔值）就是不匹配，跳过这个 arm 继续看下一个。</p>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol>
+        <li>在 <code>eval_expr</code> 的 <code>match</code> 中，把当前 <code>_ => { ... }</code> 兜底分支替换为真正的 <code>Expr::Match</code> 处理</li>
+        <li>先求值 <code>subject</code>，得到 <code>Value</code></li>
+        <li>遍历 <code>arms</code>，对每个 arm 调用一个模式匹配辅助函数</li>
+        <li>第一个匹配成功的 arm，对其 <code>body</code> 求值并 <code>return</code></li>
+        <li>如果全部不匹配，可以返回一个默认值或 <code>log!</code> 报错</li>
+        <li>写测试验证</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>目标输入 / 输出</h2>
+      <pre><code>输入:
+print match 2 { 1 => 100, 2 => 200, _ => 0 };
+
+期望输出:
+200</code></pre>
+      <pre><code>输入:
+let x = 1 + 1;
+print match x { 1 => 100, 2 => 200, _ => 0 };
+
+期望输出:
+200</code></pre>
+      <pre><code>输入:
+print match true { true => 1, false => 0 };
+
+期望输出:
+1</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：match 求值时，subject 什么时候被计算？</h2>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. 每次尝试一个 arm 时都重新计算一次 subject</label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. 在匹配任何 arm 之前，先计算一次 subject 并保存结果</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 在所有 arm 都试完之后才计算 subject</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：如果没有任何 arm 匹配，也没有 <code>_</code> 兜底，应该怎样？</h2>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 返回最后一个 arm 的 body 值</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 返回 subject 的值</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 这是一个未定义行为，当前阶段可以返回默认值或报错</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写下一个最小 match evaluator 测试</h2>
+      <p>写一个测试，验证 <code>match</code> 表达式求值后确实返回了正确分支的值。</p>
+      <textarea id="self-check" placeholder="例如：&#10;let program = parse(&quot;print match 2 { 1 => 100, 2 => 200, _ => 0 };&quot;);&#10;...断言输出 200..."></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li><code>eval_expr</code> 中已新增 <code>Expr::Match</code> 求值分支</li>
+        <li>先求值 subject，再按 arm 顺序匹配 pattern</li>
+        <li><code>Number</code>、<code>Boolean</code>、<code>Wildcard</code> 三种模式都能正确匹配</li>
+        <li>第一个匹配的 arm 的 body 被求值并返回</li>
+        <li>新增 evaluator 测试并通过 <code>cargo test</code></li>
+        <li>scanner / parser / AST 结构未改动</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>提醒：</strong>
+      这节课的胜利条件是：<code>match</code> 第一次在运行时真正"做选择"。语言第一次拥有了控制流。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://doc.rust-lang.org/reference/expressions/match-expr.html" target="_blank" rel="noreferrer">Rust Reference — Match Expressions</a>：Rust 自己的 match 求值规则——arms 按顺序匹配，第一个匹配的胜出。</li>
+        <li><a href="https://www.haskell.org/onlinereport/haskell2010/haskellch3.html" target="_blank" rel="noreferrer">Haskell 2010 Report — Pattern Matching</a>：经典的 case/match 求值语义——自顶向下，第一个匹配即返回。</li>
+      </ul>
+      <p>完成后，你的语言已经可以"根据值做选择了"——这是一个里程碑。</p>
+    </section>
+
+    <section class="box">
+      <strong>有疑问？</strong>
+      随时向 agent 提问。它是你的老师，可以帮助你理清 pattern 匹配逻辑、Rust 语法或任何不清楚的地方。
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0026-evaluate-minimal-match-expression.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> subject 只求值一次，然后用这个值去逐个 arm 匹配。每次重算 subject 既低效又可能在有副作用时产生不同行为。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 想想：如果 subject 有副作用，重算多次会怎样？');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'c') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 当前阶段语言还没有穷尽性检查，全部不匹配是未定义行为。返回默认值或用 log! 报错都是可接受的临时方案。未来可以加编译期穷尽性检查。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 没有匹配的 arm 时，返回最后一个 arm 或 subject 的值都没有依据。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写一个测试样例。</strong>'); return; }
+      const ok = value.includes('match') && (value.includes('eval') || value.includes('parse') || value.includes('assert'));
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 最好的测试是：给一个 match 表达式，验证它求值后返回了正确分支的值。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够聚焦。</strong> 请写一个直接验证 match 求值结果的测试。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>

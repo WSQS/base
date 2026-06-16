@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0026 · 最小 match evaluator 清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-fg: #9a3412;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+      margin-bottom: 16px;
+    }
+    .warn {
+      border: 1px solid #fdba74;
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--warn-bg);
+      color: var(--warn-fg);
+      margin-bottom: 16px;
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    pre code { background: transparent; padding: 0; }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0026</div>
+    <h1>最小 <code>match</code> evaluator 清单</h1>
+    <p>用途：快速确认 evaluator 是否已经能正确执行最小 <code>match</code> 表达式。</p>
+
+    <section class="card">
+      <h2>本课后应做到</h2>
+      <ul>
+        <li><code>eval_expr</code> 中已新增 <code>Expr::Match</code> 求值分支</li>
+        <li>先求值 subject，再按 arm 顺序逐个匹配</li>
+        <li>三种模式都能正确匹配：<code>Number</code>、<code>Boolean</code>、<code>Wildcard</code></li>
+        <li>第一个匹配的 arm 的 body 被求值并返回</li>
+        <li>新增 evaluator 测试并通过 <code>cargo test</code></li>
+      </ul>
+    </section>
+
+    <h2>求值规则速查</h2>
+    <pre><code>1. subject_value = eval(subject, env)
+2. for arm in arms (按书写顺序):
+     if pattern_matches(arm.pattern, subject_value):
+         return eval(arm.body, env)
+3. 全部不匹配 → 返回默认值或报错</code></pre>
+
+    <h2>模式匹配速查</h2>
+    <pre><code>Pattern::Number(n)   匹配 Value::Integer(v)  当 n == v
+Pattern::Boolean(b)  匹配 Value::Boolean(v)  当 b == v
+Pattern::Wildcard    匹配任何 Value，永远成功
+类型不同 → 不匹配，跳过</code></pre>
+
+    <h2>最小验证样例</h2>
+    <pre><code>// 样例 1
+print match 2 { 1 => 100, 2 => 200, _ => 0 };
+// 输出: 200
+
+// 样例 2
+let x = 1 + 1;
+print match x { 1 => 100, 2 => 200, _ => 0 };
+// 输出: 200
+
+// 样例 3
+print match true { true => 1, false => 0 };
+// 输出: 1</code></pre>
+
+    <section class="warn">
+      <h2>最容易犯的错误</h2>
+      <ul>
+        <li>每个 arm 都重新求值 subject（应该只求一次）</li>
+        <li>找到匹配后忘记 <code>return</code>，继续往下试别的 arm</li>
+        <li><code>Number</code> 模式去匹配 <code>Boolean</code> 值时没有正确跳过</li>
+        <li>顺手开始做绑定模式或 guard，把课题做大</li>
+        <li>一边改 evaluator 一边又改 parser 或 AST</li>
+      </ul>
+    </section>
+
+    <h2>当前仍不要求</h2>
+    <ul>
+      <li>变量绑定模式（如 <code>x => ...</code>）</li>
+      <li>guard（如 <code>x if x > 0 => ...</code>）</li>
+      <li>穷尽性检查</li>
+      <li>多语句 arm body</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0026-minimal-match-evaluator-checklist.html</code></p>
+  </main>
+</body>
+</html>

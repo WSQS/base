@@ -463,6 +463,22 @@ fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
             }
         }
         Expr::Ident(name) => env.get(name).expect("Can't get identifier").clone(),
+        Expr::Match { subject, arms } => {
+            let s = eval_expr(subject, env);
+            eval_expr(
+                arms.iter()
+                    .find(|arm| match (&s, &arm.pattern) {
+                        (Value::Boolean(b_v), Pattern::Boolean(b_p)) if b_v == b_p => true,
+                        (Value::Integer(i_v), Pattern::Number(i_p)) if i_v == i_p => true,
+                        (_, Pattern::Wildcard) => true,
+                        _ => false,
+                    })
+                    .expect("Can't get right arm.")
+                    .value
+                    .as_ref(),
+                env,
+            )
+        }
         _ => {
             log!("Unavailable expr:{expr:?}");
             Value::Integer(0)
@@ -788,5 +804,13 @@ mod tests {
                 if matches!(pattern, Pattern::Wildcard)
                 && matches!(value.as_ref(), Expr::Number(i) if *i == 2))
         )));
+    }
+
+    #[test]
+    fn test_parse_eval() {
+        let program = parse("let x = true;let y = match x { true => 1, _ => 2 };");
+        let env = &mut HashMap::new();
+        eval_program_with_env(&program, env);
+        assert!(matches!(env.get("y").expect("Can't get y"),Value::Integer(i) if *i == 1))
     }
 }
