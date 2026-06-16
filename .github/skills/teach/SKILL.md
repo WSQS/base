@@ -38,10 +38,19 @@ A lesson should be **beautiful** — clean, readable typography and layout — s
 
 The lesson should teach ONE THING only. It should be completable very quickly - but give the user a tangible win that they can build on. It should be directly tied to the mission, and should be in the user's zone of proximal development.
 
-Make opening a lesson as easy as possible — ideally a single CLI command the user can run to open the HTML file in their browser.
-If you create or replace lesson/reference HTML files during a teaching task, run the corresponding local `start` command as part of completing that task unless the user says not to.
+### Lesson + Reference + Open = one completion unit
 
-Treat a lesson as incomplete until the relevant teaching workspace state is updated, especially the corresponding `./learning-records/*.md` entry.
+Treat these three as a single atomic unit of work. A lesson is **not complete** unless **all three** are done:
+
+1. **Lesson HTML** is written or replaced under `./lessons/`.
+2. **Companion reference HTML** is written or updated under `./reference/`. Every lesson has a companion reference; if a suitable reference already exists, update it rather than skipping.
+3. **Both files are opened** locally via `start .\lessons\<file>.html` and `start .\reference\<file>.html`, unless the user explicitly says not to open.
+
+Do not report a lesson as generated/done while any of the three is missing. Do not stop at merely printing the `start` command — run it.
+
+On Windows, open files from the repository root, e.g. `start .\lessons\0001-some-lesson.html`.
+
+After the unit is complete, update the relevant `./learning-records/*.md` entry before treating the lesson state as fully captured.
 
 ## The Mission
 
@@ -119,17 +128,6 @@ Glossaries, in particular, are an essential reference. Once one is created, it s
 
 The user will sometimes express preferences of how they want to be taught, or things you should keep in mind. This is the place to record those preferences, so you can refer back to them when designing lessons or working with the user.
 
-## HTML open workflow
+## Opening generated HTML files
 
-When you create or replace a lesson or reference HTML file:
-
-1. Finish writing the HTML file.
-2. Run the matching local open command immediately so the file opens in the browser.
-3. Mention briefly that you opened it.
-
-Examples:
-
-- `start .\lessons\0001-some-lesson.html`
-- `start .\reference\0001-some-reference.html`
-
-Do not stop at merely printing the command when the task includes generating the HTML file.
+When you create or replace a lesson or reference HTML file, open it locally immediately after writing it (see the `Lesson + Reference + Open` rule above). Use the local `start` command from the repository root, e.g. `start .\lessons\0001-some-lesson.html`. Run the command; do not just print it.
