@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0024 · match token 清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --paper: #fff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px 40px 40px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: var(--good-bg);
+      color: var(--good-fg);
+      margin-bottom: 16px;
+    }
+    ul { padding-left: 20px; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      main { margin: 0; border: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0024</div>
+    <h1><code>match</code> token 清单</h1>
+    <p>用途：快速确认 scanner 是否已经支持未来最小 <code>match</code> 表达式所需的词法符号。</p>
+
+    <section class="card">
+      <h2>本课后应做到</h2>
+      <ul>
+        <li>scanner 已识别 <code>match</code> 关键字</li>
+        <li>scanner 已识别 <code>_</code> 通配符相关 token</li>
+        <li>scanner 已识别 <code>=&gt;</code> 之类的匹配分支符号</li>
+        <li>如果未来最小 <code>match</code> 使用花括号和 arm 分隔符，也已识别 <code>{</code>、<code>}</code>、<code>,</code></li>
+        <li>新增 scanner 测试并通过</li>
+      </ul>
+    </section>
+
+    <h2>当前仍不要求</h2>
+    <ul>
+      <li><code>Pattern</code> AST</li>
+      <li><code>match</code> parser</li>
+      <li>匹配求值语义</li>
+      <li>绑定模式 / guard / variant pattern</li>
+    </ul>
+
+    <h2>最小验证样例</h2>
+    <pre><code>let tokens = scan("match true { true => 1, false => -1, _ => 0 }");
+
+  目标：
+  scanner 能把这类未来完整 match 写法中的关键符号切成合理 token 序列。</code></pre>
+
+    <h2>最容易犯的错误</h2>
+    <ul>
+      <li>一边加 token，一边顺手去改 parser / evaluator，把课题做大</li>
+      <li>只加入 <code>match</code> 关键字，却漏掉 <code>_</code>、<code>=&gt;</code> 或未来写法需要的 <code>{</code>、<code>}</code>、<code>,</code></li>
+      <li>测试不验证 token 顺序，只验证“有几个 token”</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0024-match-token-checklist.html</code></p>
+  </main>
+</body>
+</html>

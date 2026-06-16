@@ -47,14 +47,20 @@ enum Token {
     LessEqual,
     GreaterEqual,
     BangEqual,
+    EqualGreater,
     LParen,
     RParen,
+    LBrace,
+    RBrace,
     Equal,
     Semicolon,
+    Comma,
     Number(i64),
     Ident(String),
     Print,
     Let,
+    Match,
+    Wildcard,
     True,
     False,
 }
@@ -92,6 +98,10 @@ fn scan(input: &str) -> Vec<Token> {
                         result.push(Token::True);
                     } else if value == "false" {
                         result.push(Token::False);
+                    } else if value == "match" {
+                        result.push(Token::Match);
+                    } else if value == "_" {
+                        result.push(Token::Wildcard);
                     } else {
                         result.push(Token::Ident(value.clone()));
                     }
@@ -99,7 +109,7 @@ fn scan(input: &str) -> Vec<Token> {
                 value = "".to_string();
             }
         };
-        if c.is_alphanumeric() {
+        if c.is_alphanumeric() || *c == '_' {
             value = value + &c.to_string();
         } else if *c == ' ' {
             flush();
@@ -141,12 +151,20 @@ fn scan(input: &str) -> Vec<Token> {
         } else if *c == ')' {
             flush();
             result.push(Token::RParen)
+        } else if *c == '{' {
+            flush();
+            result.push(Token::LBrace)
+        } else if *c == '}' {
+            flush();
+            result.push(Token::RBrace)
         } else if *c == '=' {
             flush();
             let c = chars.index(i);
             i += 1;
             if *c == '=' {
                 result.push(Token::EqualEqual);
+            } else if *c == '>' {
+                result.push(Token::EqualGreater);
             } else {
                 i -= 1;
                 result.push(Token::Equal);
@@ -164,6 +182,9 @@ fn scan(input: &str) -> Vec<Token> {
         } else if *c == ';' {
             flush();
             result.push(Token::Semicolon)
+        } else if *c == ',' {
+            flush();
+            result.push(Token::Comma)
         } else {
             println!("Not support char:\"{c}\"")
         }
@@ -183,6 +204,10 @@ fn scan(input: &str) -> Vec<Token> {
                 result.push(Token::True);
             } else if value == "false" {
                 result.push(Token::False);
+            } else if value == "match" {
+                result.push(Token::Match);
+            } else if value == "_" {
+                result.push(Token::Wildcard);
             } else {
                 result.push(Token::Ident(value));
             }
@@ -652,5 +677,21 @@ mod tests {
             env.get("y").expect("Nox variable y"),
             Value::Boolean(b) if matches!(b,false)
         ));
+    }
+
+    #[test]
+    fn test_scan_match() {
+        let tokens = scan("match true { true => 1, _ => 2 }");
+        assert!(matches!(tokens[0], Token::Match));
+        assert!(matches!(tokens[1], Token::True));
+        assert!(matches!(tokens[2], Token::LBrace));
+        assert!(matches!(tokens[3], Token::True));
+        assert!(matches!(tokens[4], Token::EqualGreater));
+        assert!(matches!(tokens[5],Token::Number(i) if i == 1));
+        assert!(matches!(tokens[6], Token::Comma));
+        assert!(matches!(tokens[7], Token::Wildcard));
+        assert!(matches!(tokens[8], Token::EqualGreater));
+        assert!(matches!(tokens[9],Token::Number(i)if i == 2));
+        assert!(matches!(tokens[10], Token::RBrace));
     }
 }
