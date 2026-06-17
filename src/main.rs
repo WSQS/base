@@ -39,6 +39,7 @@ struct MatchArm {
 #[derive(Debug)]
 enum Expr {
     Number(i64),
+    String(String),
     Boolean(bool),
     Ident(String),
     Binary {
@@ -250,6 +251,7 @@ fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
     *i += 1;
     match t {
         Token::Number(i) => Expr::Number(*i),
+        Token::String(s) => Expr::String(s.clone()),
         Token::True => Expr::Boolean(true),
         Token::False => Expr::Boolean(false),
         Token::Ident(name) => Expr::Ident(name.clone()),
@@ -826,13 +828,24 @@ mod tests {
         assert!(matches!(env.get("y").expect("Can't get y"),Value::Integer(i) if *i == 1))
     }
 
-        #[test]
-    fn test_scan_string () {
+    #[test]
+    fn test_scan_string() {
         let tokens = scan("let x = \"hello world\";");
         assert!(matches!(tokens[0], Token::Let));
         assert!(matches!(&tokens[1], Token::Ident(i) if *i == *"x"));
         assert!(matches!(tokens[2], Token::Equal));
         assert!(matches!(&tokens[3], Token::String(s) if *s  == *"hello world"));
         assert!(matches!(tokens[4], Token::Semicolon));
+    }
+
+        #[test]
+    fn test_parse_string() {
+        let program = parse("let x = \"hello world\";");
+        assert!(matches!(
+            &program.stmts[0], 
+            Stmt::Let { name, expr }
+            if *name == *"x"
+            && matches!(expr, Expr::String(s) if *s == *"hello world")
+        ));
     }
 }
