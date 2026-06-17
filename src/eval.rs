@@ -1,7 +1,8 @@
-use crate::ast::{Expr, MatchArm, Pattern, Program, Stmt, Token};
-use crate::value::Value;
-use std::{collections::HashMap, io, ops::Index};
+use crate::ast::{Expr, Pattern, Program, Stmt, Token};
 use crate::log;
+use crate::parse::parse;
+use crate::value::Value;
+use std::collections::HashMap;
 
 pub fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
     match expr {
@@ -84,4 +85,67 @@ pub fn eval_program_with_env(program: &Program, env: &mut HashMap<String, Value>
 pub fn eval_program(program: &Program) {
     let mut env = HashMap::new();
     eval_program_with_env(program, &mut env);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_eval_expr() {
+        let result = eval_expr(
+            &Expr::Binary {
+                left: Box::new(Expr::Number(5)),
+                op: Token::Plus,
+                right: Box::new(Expr::Number(7)),
+            },
+            &HashMap::new(),
+        );
+        assert!(matches!(result, Value::Integer(i)if i ==12));
+    }
+
+    #[test]
+    fn test_comparison_eval() {
+        let program = parse("let x = 1 == 2;");
+        let mut env = HashMap::new();
+        eval_program_with_env(&program, &mut env);
+        assert!(matches!(
+            env.get("x").expect("Nox variable x"),
+            Value::Boolean(b) if matches!(b,false)
+        ));
+    }
+    #[test]
+    fn test_boolean_literals() {
+        let program = parse("let x = true; let y = false;");
+        let mut env = HashMap::new();
+        eval_program_with_env(&program, &mut env);
+        assert!(matches!(
+            env.get("x").expect("Nox variable x"),
+            Value::Boolean(b) if matches!(b,true)
+        ));
+        assert!(matches!(
+            env.get("y").expect("Nox variable y"),
+            Value::Boolean(b) if matches!(b,false)
+        ));
+    }
+
+    #[test]
+    fn test_eval_match() {
+        let program = parse("let x = true;let y = match x { true => 1, _ => 2 };");
+        let env = &mut HashMap::new();
+        eval_program_with_env(&program, env);
+        assert!(matches!(env.get("y").expect("Can't get y"),Value::Integer(i) if *i == 1))
+    }
+
+    #[test]
+    fn test_eval_string() {
+        let program = parse("let x = \"hello world\";");
+        let env = &mut HashMap::new();
+        eval_program_with_env(&program, env);
+
+        assert!(matches!(
+            env.get("x").expect("can't get x"),
+            Value::String(s) if *s == *"hello world"
+        ));
+    }
 }

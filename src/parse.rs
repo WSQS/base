@@ -202,3 +202,164 @@ pub fn parse(input: &str) -> Program {
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_output() {
+        let program = parse("let x = 1 + 2; print x;");
+        assert!(matches!(&program.stmts[0], Stmt::Let {
+                name,
+                expr: Expr::Binary {
+                    left,
+                    op: Token::Plus,
+                    right,
+                },
+            } if name == "x" && matches!(left.as_ref(), Expr::Number(1)) && matches!(right.as_ref(), Expr::Number(2))
+        ));
+        assert!(matches!(&program.stmts[1],Stmt::Print { expr:Expr::Ident(x) } if x == "x"));
+    }
+
+    #[test]
+    fn test_parse_simple_let() {
+        let program = parse("let x = 1;");
+        assert!(matches!(&program.stmts[0], Stmt::Let {
+                name,
+                expr: Expr::Number(1),
+            } if name == "x"
+        ));
+    }
+
+    #[test]
+    fn test_parse_simple_print() {
+        let program = parse("print x;");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Ident(name),
+            } if name == "x"
+        ));
+    }
+
+    #[test]
+    fn test_parse_paren() {
+        let program = parse("print 1 + (2+ 3);");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Binary { left, op, right },
+            } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::Plus) && matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2)) && matches!(op, Token::Plus) && matches!(right.as_ref(),Expr::Number(3)))
+        ));
+    }
+
+    #[test]
+    fn test_precedence_1() {
+        let program = parse("print 1+ 2 * 3;");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Binary { left, op, right },
+            } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::Plus) && matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2)) && matches!(op, Token::Star) && matches!(right.as_ref(),Expr::Number(3)))
+        ));
+    }
+
+    #[test]
+    fn test_precedence_2() {
+        let program = parse("print 1* 2 + 3;");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Binary { left, op, right },
+            } if matches!(right.as_ref(),Expr::Number(3)) && matches!(op,Token::Plus) && matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op, Token::Star) && matches!(right.as_ref(),Expr::Number(2)))
+        ));
+    }
+
+    #[test]
+    fn test_precedence_3() {
+        let program = parse("print 1 + 2 + 3;");
+        log!("program:{program:?}");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Binary { left, op, right },
+            } if matches!(right.as_ref(),Expr::Number(3)) && matches!(op,Token::Plus) && matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op, Token::Plus) && matches!(right.as_ref(),Expr::Number(2)))
+        ));
+    }
+
+    #[test]
+    fn test_precedence_4() {
+        let program = parse("print 1 * 2 * 3;");
+        log!("program:{program:?}");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Binary { left, op, right },
+            } if matches!(right.as_ref(),Expr::Number(3)) && matches!(op,Token::Star) && matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op, Token::Star) && matches!(right.as_ref(),Expr::Number(2)))
+        ));
+    }
+
+    #[test]
+    fn test_precedence_5() {
+        let program = parse("print 1 + 2 * 3 + 4;");
+        log!("program:{program:?}");
+        assert!(matches!(&program.stmts[0], Stmt::Print {
+                expr: Expr::Binary { left, op, right },
+            } if matches!(right.as_ref(),Expr::Number(4)) && matches!(op,Token::Plus) && matches!(left.as_ref(),Expr::Binary { left, op, right } if matches!(right.as_ref(),Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(2))&& matches!(op,Token::Star) && matches!(right.as_ref(),Expr::Number(3))) && matches!(op, Token::Plus) && matches!(left.as_ref(),Expr::Number(1)))
+        ));
+    }
+
+    #[test]
+    fn test_comparison_parse1() {
+        let program = parse("print 1 == 2;");
+        assert!(
+            matches!(&program.stmts[0],Stmt::Print { expr } if matches!(expr, Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::EqualEqual) && matches!(right.as_ref(),Expr::Number(2))))
+        );
+    }
+
+    #[test]
+    fn test_comparison_parse2() {
+        let program = parse("print 1 * 2 == 2;");
+        assert!(matches!(
+            &program.stmts[0],
+            Stmt::Print { expr }
+            if matches!(
+                expr, Expr::Binary { left, op, right }
+                if matches!(
+                    &left.as_ref(),
+                    Expr::Binary { left, op, right }
+                    if matches!(left.as_ref(),Expr::Number(1))
+                    && matches!(op,Token::Star)
+                    && matches!(right.as_ref(),Expr::Number(2))
+                )
+                && matches!(
+                    op,
+                    Token::EqualEqual)
+                && matches!(
+                    right.as_ref(),
+                    Expr::Number(2))
+            )
+        ));
+    }
+
+    #[test]
+    fn test_parse_match() {
+        let program = parse("print match true { true => 1, _ => 2 };");
+        log!("program:{program:?}");
+        assert!(matches!(&program.stmts[0], Stmt::Print { expr }
+        if matches!(
+            expr,
+            Expr::Match { subject, arms }
+            if matches!(subject.as_ref(),Expr::Boolean(b) if *b == true)
+            && matches!(
+                &arms[0],
+                MatchArm { pattern, value }
+                if matches!(pattern, Pattern::Boolean(b) if *b == true)
+                && matches!(value.as_ref(), Expr::Number(i) if *i == 1))
+            && matches!(
+                &arms[1],
+                MatchArm { pattern, value }
+                if matches!(pattern, Pattern::Wildcard)
+                && matches!(value.as_ref(), Expr::Number(i) if *i == 2))
+        )));
+    }
+    #[test]
+    fn test_parse_string() {
+        let program = parse("let x = \"hello world\";");
+        assert!(matches!(
+            &program.stmts[0],
+            Stmt::Let { name, expr }
+            if *name == *"x"
+            && matches!(expr, Expr::String(s) if *s == *"hello world")
+        ));
+    }
+}
