@@ -1,83 +1,13 @@
 use std::{collections::HashMap, io, ops::Index};
 mod value;
 use value::Value;
+mod ast;
+use ast::{Expr, MatchArm, Pattern, Program, Stmt, Token};
 
 macro_rules! log {
     ($($arg:tt)*) => {
         println!("[{}:{}] {}", file!(), line!(), format_args!($($arg)*))
     };
-}
-
-#[derive(Debug)]
-struct Program {
-    stmts: Vec<Stmt>,
-}
-
-#[derive(Debug)]
-enum Stmt {
-    Let { name: String, expr: Expr },
-    Print { expr: Expr },
-}
-
-#[derive(Debug)]
-enum Pattern {
-    Number(i64),
-    Boolean(bool),
-    Wildcard,
-}
-
-#[derive(Debug)]
-struct MatchArm {
-    pattern: Pattern,
-    value: Box<Expr>,
-}
-
-#[derive(Debug)]
-enum Expr {
-    Number(i64),
-    String(String),
-    Boolean(bool),
-    Ident(String),
-    Binary {
-        left: Box<Expr>,
-        op: Token,
-        right: Box<Expr>,
-    },
-    Match {
-        subject: Box<Expr>,
-        arms: Vec<MatchArm>,
-    },
-}
-
-#[derive(Debug, Clone)]
-enum Token {
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    EqualEqual,
-    Less,
-    Greater,
-    LessEqual,
-    GreaterEqual,
-    BangEqual,
-    EqualGreater,
-    LParen,
-    RParen,
-    LBrace,
-    RBrace,
-    Equal,
-    Semicolon,
-    Comma,
-    Number(i64),
-    String(String),
-    Ident(String),
-    Print,
-    Let,
-    Match,
-    Wildcard,
-    True,
-    False,
 }
 
 fn main() {
