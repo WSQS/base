@@ -1,16 +1,11 @@
 use std::{collections::HashMap, io, ops::Index};
+mod value;
+use value::Value;
 
 macro_rules! log {
     ($($arg:tt)*) => {
         println!("[{}:{}] {}", file!(), line!(), format_args!($($arg)*))
     };
-}
-
-#[derive(Debug, Clone)]
-enum Value {
-    Integer(i64),
-    Boolean(bool),
-    String(String),
 }
 
 #[derive(Debug)]
