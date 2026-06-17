@@ -73,6 +73,7 @@ enum Token {
     Semicolon,
     Comma,
     Number(i64),
+    String(String),
     Ident(String),
     Print,
     Let,
@@ -128,6 +129,17 @@ fn scan(input: &str) -> Vec<Token> {
         };
         if c.is_alphanumeric() || *c == '_' {
             value = value + &c.to_string();
+        } else if *c == '"' {
+            flush();
+            let mut c = chars.index(i);
+            i += 1;
+            let mut s = String::new();
+            while *c != '"' {
+                s += &*c.to_string();
+                c = chars.index(i);
+                i += 1;
+            }
+            result.push(Token::String(s));
         } else if *c == ' ' {
             flush();
         } else if *c == '+' {
@@ -812,5 +824,15 @@ mod tests {
         let env = &mut HashMap::new();
         eval_program_with_env(&program, env);
         assert!(matches!(env.get("y").expect("Can't get y"),Value::Integer(i) if *i == 1))
+    }
+
+        #[test]
+    fn test_scan_string () {
+        let tokens = scan("let x = \"hello world\";");
+        assert!(matches!(tokens[0], Token::Let));
+        assert!(matches!(&tokens[1], Token::Ident(i) if *i == *"x"));
+        assert!(matches!(tokens[2], Token::Equal));
+        assert!(matches!(&tokens[3], Token::String(s) if *s  == *"hello world"));
+        assert!(matches!(tokens[4], Token::Semicolon));
     }
 }
