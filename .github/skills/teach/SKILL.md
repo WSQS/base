@@ -50,7 +50,7 @@ Do not report a lesson as generated/done while any of the three is missing. Do n
 
 On Windows, open files from the repository root, e.g. `start .\lessons\0001-some-lesson.html`.
 
-After the unit is complete, update the relevant `./learning-records/*.md` entry before treating the lesson state as fully captured.
+This unit being done means **the teaching material has been delivered**. It does **not** mean the lesson is completed — see [Lesson Completion Workflow](#lesson-completion-workflow) below for when to write a learning record.
 
 ## The Mission
 
@@ -72,7 +72,7 @@ The user may specify an exact thing they want to learn. If they don't, figure ou
 
 A user may tell you that they already know about that topic. If so, record it in their `learning-records`.
 
-`./learning-records/*.md` are required teaching state, not optional documentation. If a lesson is completed or prior knowledge is established, update the relevant learning record unless the user explicitly says not to update learning records.
+`./learning-records/*.md` are required teaching state, not optional documentation. But they record **demonstrated learning**, not delivered material. Write or update a learning record only after the user has shown evidence of understanding — not when a lesson is merely generated or delivered.
 
 ## Acquiring Knowledge & Skills
 
@@ -84,7 +84,11 @@ Each lesson should contain a reminder to ask followup questions to the agent. Th
 
 ## Lesson Completion Workflow
 
-When a lesson is completed or prior knowledge is established, write or update the relevant `./learning-records/*.md` entry using [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md) before treating that lesson state as fully captured.
+A lesson is **delivered** when the lesson HTML + companion reference + open unit is done (see above). A lesson is **completed** only when the user has actually implemented, tested, and/or reviewed the exercise — i.e., there is evidence of learning.
+
+Do **not** write or update a `./learning-records/*.md` entry at delivery time. Write it only at completion time — after the user has demonstrated understanding (passed tests, shown working code, answered correctly, or confirmed review).
+
+The distinction matters: a learning record written before the user has done the work creates false state — it claims knowledge that hasn't been demonstrated yet. See [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md) ("What does _not_ qualify: Material that was merely covered. Coverage is not learning. Wait for evidence.").
 
 Do not skip this just because the workspace has a general preference against creating extra Markdown files. Learning records are part of the teaching workspace state.
 
