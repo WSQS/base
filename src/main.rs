@@ -10,6 +10,7 @@ macro_rules! log {
 enum Value {
     Integer(i64),
     Boolean(bool),
+    String(String),
 }
 
 #[derive(Debug)]
@@ -450,6 +451,7 @@ fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
     match expr {
         Expr::Number(i) => Value::Integer(*i),
         Expr::Boolean(b) => Value::Boolean(*b),
+        Expr::String(s) => Value::String(s.clone()),
         Expr::Binary { left, op, right } => {
             let l = eval_expr(left, env);
             let r = eval_expr(right, env);
@@ -508,6 +510,7 @@ fn eval_program_with_env(program: &Program, env: &mut HashMap<String, Value>) {
                 match result {
                     Value::Integer(i) => print!("{i}\n"),
                     Value::Boolean(b) => print!("{b}\n"),
+                    Value::String(s) => print!("{s}\n"),
                     _ => print!("Invalid value:{result:?}"),
                 }
             }
@@ -838,14 +841,26 @@ mod tests {
         assert!(matches!(tokens[4], Token::Semicolon));
     }
 
-        #[test]
+    #[test]
     fn test_parse_string() {
         let program = parse("let x = \"hello world\";");
         assert!(matches!(
-            &program.stmts[0], 
+            &program.stmts[0],
             Stmt::Let { name, expr }
             if *name == *"x"
             && matches!(expr, Expr::String(s) if *s == *"hello world")
+        ));
+    }
+
+    #[test]
+    fn test_eval_string() {
+        let program = parse("let x = \"hello world\";");
+        let env = &mut HashMap::new();
+        eval_program_with_env(&program, env);
+
+        assert!(matches!(
+            env.get("x").expect("can't get x"),
+            Value::String(s) if *s == *"hello world"
         ));
     }
 }
