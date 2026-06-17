@@ -88,6 +88,8 @@ A lesson is **delivered** when the lesson HTML + companion reference + open unit
 
 Do **not** write or update a `./learning-records/*.md` entry at delivery time. Write it only at completion time — after the user has demonstrated understanding (passed tests, shown working code, answered correctly, or confirmed review).
 
+If a lesson reaches the stage of formal review / retrospective and that review confirms the lesson goal was achieved, treat that as completion evidence and write the corresponding learning record in the same workflow.
+
 The distinction matters: a learning record written before the user has done the work creates false state — it claims knowledge that hasn't been demonstrated yet. See [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md) ("What does _not_ qualify: Material that was merely covered. Coverage is not learning. Wait for evidence.").
 
 Do not skip this just because the workspace has a general preference against creating extra Markdown files. Learning records are part of the teaching workspace state.
