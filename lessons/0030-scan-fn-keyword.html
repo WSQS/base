@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0030 · 扫描 fn 关键字</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --line: #e5e7eb;
+      --good-bg: #ecfdf5;
+      --good-line: #86efac;
+      --good-text: #065f46;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --code-bg: #0f172a;
+      --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .page {
+      max-width: 980px;
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 36px 48px 48px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pill {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.05rem; margin: 0 0 10px; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+    .box, .exercise {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      background: #fbfdff;
+    }
+    .goal { background: #eff6ff; }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+    }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    ul, ol { padding-left: 22px; }
+    .feedback {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) {
+      .page { padding: 24px 18px 28px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; border: 0; margin: 0; max-width: none; }
+      button, textarea { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0030</div>
+    <h1>扫描 <code>fn</code> 关键字</h1>
+    <p class="lede">这一课只做 scanner：让语言第一次认识 <code>fn</code> 这个关键字，并把它产出为一个 token。</p>
+
+    <section class="box goal">
+      <strong>这一步为什么重要：</strong>
+      <code>fn</code> 将是函数字面量的入口关键字，和 <code>true</code>、<code>false</code>、<code>match</code> 一样，先让 scanner 识别它。后续 parser 和 evaluator 才能基于 <code>Token::Fn</code> 构建函数表达式的语法树和求值。
+    </section>
+
+    <section>
+      <h2>本课范围</h2>
+      <ul>
+        <li>给 <code>Token</code> 新增 <code>Fn</code> 变体</li>
+        <li>在 scanner 的 flush 逻辑中添加 <code>fn</code> 关键字识别</li>
+        <li>新增 scanner 测试</li>
+      </ul>
+      <p>这一课<strong>不做</strong>：</p>
+      <ul>
+        <li>不改 parser</li>
+        <li>不改 AST</li>
+        <li>不改 evaluator</li>
+        <li>不支持函数字面量语法</li>
+        <li>不支持函数调用</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课真正新增的知识点</h2>
+      <p>scanner 已经处理过很多关键字了：<code>let</code>、<code>print</code>、<code>true</code>、<code>false</code>、<code>match</code>、<code>_</code>。</p>
+      <p>新增 <code>fn</code> 的模式完全一样：在 flush 的时候检查 value 缓冲区内容，如果是 <code>"fn"</code> 就 push <code>Token::Fn</code>。</p>
+      <p>但和之前不一样的是：这次不是在做完一个功能后才加关键字，而是在为未来的功能表做铺垫。这是一种常见的语言扩展节奏——先把关键字扫出来，下一课再给它语义。</p>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol>
+        <li>在 <code>Token</code> 中加入 <code>Fn</code></li>
+        <li>在 scanner 的 flush 闭包里添加 <code>"fn" => Token::Fn</code></li>
+        <li>在 scanner 末尾的收尾逻辑里也添加 <code>"fn" => Token::Fn</code></li>
+        <li>新增测试验证</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>目标输入 / token 输出</h2>
+      <pre><code>输入:
+fn x { x + x }
+
+目标 token:
+[
+  Fn,
+  Ident("x"),
+  LBrace,
+  Ident("x"),
+  Plus,
+  Ident("x"),
+  RBrace,
+]</code></pre>
+      <pre><code>输入:
+let add = fn(x, y) { x + y };
+
+目标 token:
+[
+  Let,    Ident("add"), Equal,
+  Fn,     LParen,       Ident("x"), Comma, Ident("y"), RParen,
+  LBrace, Ident("x"),   Plus,       Ident("y"), RBrace, Semicolon,
+]</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：为什么 <code>fn</code> 是一个关键字而不是标识符？</h2>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. 因为 <code>fn</code> 很短</label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. 因为 <code>fn</code> 有特殊的语法含义——它是函数字面量的起始标记，不应该被当作普通名字使用</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 因为 Rust 不允许标识符叫 fn</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：这一课和之前的 <code>Token::Match</code>、<code>Token::Wildcard</code> 有什么本质不同？</h2>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 没有不同，都是加关键字</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. <code>fn</code> 比 <code>match</code> 更复杂</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 技术上是相同的——都是给 scanner 加一个关键字识别。唯一的不同是这次是为未来的函数字面量语法铺路</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写一个最小 <code>fn</code> scanner 测试</h2>
+      <p>写一个测试样例，验证 <code>scan()</code> 已经能识别 <code>fn</code> 关键字。</p>
+      <textarea id="self-check" placeholder="例如：&#10;let tokens = scan(&quot;fn x { x + x }&quot;);&#10;...断言 tokens[0] 是 Token::Fn ..."></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li><code>Token</code> 中已新增 <code>Fn</code></li>
+        <li>scanner 的 flush 和末尾收尾逻辑都支持 <code>"fn"</code></li>
+        <li>新增 scanner 测试并通过</li>
+        <li>parser / AST / evaluator 暂时不改</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>提醒：</strong>
+      这节课的胜利条件不是函数已经能运行，而是"scanner 已经认识 <code>fn</code> 关键字"。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://craftinginterpreters.com/scanning.html" target="_blank" rel="noreferrer">Crafting Interpreters — Scanning</a>：scanner 负责把保留字识别为独立 token，不交给 parser 做字符串比较。</li>
+        <li><a href="https://doc.rust-lang.org/reference/keywords.html" target="_blank" rel="noreferrer">Rust Reference — Keywords</a>：关键字是 reserved 的标识符，在词法层就已经区分开了。</li>
+      </ul>
+      <p>完成这一课后，下一课才是把 <code>fn</code> 接进 parser，构建函数字面量 AST。</p>
+    </section>
+
+    <section class="box">
+      <strong>有疑问？</strong>
+      随时向 agent 提问。它可以帮你确认 flush 闭包和末尾收尾逻辑中需要加 <code>fn</code> 分支的位置。
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0030-scan-fn-keyword.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> fn 有特殊的语法角色，应该在词法层就被识别为关键字。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 关键不在于长度，而在于语法角色。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'c') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 实现上完全一致，不同的是这次是在为未来的语法铺路。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 这一课在 scanner 层面和之前加关键字的方式完全相同。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写一个测试样例。</strong>'); return; }
+      const ok = value.includes('scan') && value.includes('Fn');
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 这节课最好的测试就是断言 scanner 产出了 Fn token。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够聚焦。</strong> 请直接写一个 scanner 层面的 fn token 测试。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>

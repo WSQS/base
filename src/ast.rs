@@ -66,6 +66,7 @@ pub enum Token {
     Let,
     Match,
     Wildcard,
+    Fn,
     True,
     False,
 }

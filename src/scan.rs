@@ -21,6 +21,8 @@ pub fn scan(input: &str) -> Vec<Token> {
                         result.push(Token::Let);
                     } else if value == "print" {
                         result.push(Token::Print);
+                    } else if value == "fn" {
+                        result.push(Token::Fn);
                     } else if value == "true" {
                         result.push(Token::True);
                     } else if value == "false" {
@@ -138,6 +140,8 @@ pub fn scan(input: &str) -> Vec<Token> {
                 result.push(Token::Let);
             } else if value == "print" {
                 result.push(Token::Print);
+            } else if value == "fn" {
+                result.push(Token::Fn);
             } else if value == "true" {
                 result.push(Token::True);
             } else if value == "false" {
@@ -271,5 +275,20 @@ mod tests {
         assert!(matches!(tokens[2], Token::Equal));
         assert!(matches!(&tokens[3], Token::String(s) if *s  == *"hello world"));
         assert!(matches!(tokens[4], Token::Semicolon));
+    }
+
+    #[test]
+    fn test_scan_function() {
+        let tokens = scan("let add = fn(){1};");
+        assert!(matches!(tokens[0], Token::Let));
+        assert!(matches!(&tokens[1], Token::Ident(i) if *i == *"add"));
+        assert!(matches!(tokens[2], Token::Equal));
+        assert!(matches!(tokens[3], Token::Fn));
+        assert!(matches!(tokens[4], Token::LParen));
+        assert!(matches!(tokens[5], Token::RParen));
+        assert!(matches!(tokens[6], Token::LBrace));
+        assert!(matches!(tokens[7], Token::Number(i) if i == 1));
+        assert!(matches!(tokens[8], Token::RBrace));
+        assert!(matches!(tokens[9], Token::Semicolon));
     }
 }
