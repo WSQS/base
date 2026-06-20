@@ -72,8 +72,6 @@ The user may specify an exact thing they want to learn. If they don't, figure ou
 
 A user may tell you that they already know about that topic. If so, record it in their `learning-records`.
 
-`./learning-records/*.md` are required teaching state, not optional documentation. But they record **demonstrated learning**, not delivered material. Write or update a learning record only after the user has shown evidence of understanding — not when a lesson is merely generated or delivered.
-
 ## Acquiring Knowledge & Skills
 
 Lessons should be designed around a skill the user is going to learn. The knowledge in the lesson should be only what's required to acquire that skill. You teach the knowledge first, then get the user to practice the skills via an interactive feedback loop.
@@ -133,7 +131,3 @@ Glossaries, in particular, are an essential reference. Once one is created, it s
 ## `NOTES.md`
 
 The user will sometimes express preferences of how they want to be taught, or things you should keep in mind. This is the place to record those preferences, so you can refer back to them when designing lessons or working with the user.
-
-## Opening generated HTML files
-
-When you create or replace a lesson or reference HTML file, open it locally immediately after writing it (see the `Lesson + Reference + Open` rule above). Use the local `start` command from the repository root, e.g. `start .\lessons\0001-some-lesson.html`. Run the command; do not just print it.
