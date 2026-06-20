@@ -11,10 +11,9 @@ description: Diagnose and improve an existing GitHub Copilot skill or its surrou
 2. Start from the concrete problems the user identified, not from a generic rewrite goal.
 3. Use available context such as nearby skills, repository purpose, current workflow, recent conversation state, and any earlier use of the target skill in this session to infer what the skill should optimize for.
 4. Before editing, clarify the actual problem: confirm whether the issue is really in the target skill, in repository-local workflow, in current session instructions, or in higher-level agent behavior.
-4.5. If the user asks to "record", "persist", or "land" a reflection, first classify the information type before choosing a file: skill workflow guidance belongs in the relevant skill or instruction file; project collaboration preferences belong in repository notes; project goals and constraints belong in mission/design files.
-5. If the problem is still ambiguous, discuss it with the user first instead of editing immediately.
-6. Edit only what is needed to fix the confirmed problem without changing the intended capability unless the user asks for a scope change.
-7. Keep the result concise, specific, and easy for an agent to invoke correctly.
+5. If the user asks to "record", "persist", or "land" a reflection, first classify the information type before choosing a file: skill workflow guidance belongs in the relevant skill or instruction file; project collaboration preferences belong in repository notes; project goals and constraints belong in mission/design files.
+6. If the problem is still ambiguous, discuss it with the user first instead of editing immediately.
+7. Edit only what is needed to fix the confirmed problem without changing the intended capability unless the user asks for a scope change.
 
 ## Context to use
 
@@ -29,8 +28,6 @@ Use as much relevant context as is available:
 Do not optimize in a vacuum. If the user says a skill is too broad, too vague, not triggering, or producing the wrong kind of output, treat that as the primary optimization target. If the target skill was used earlier in the session, use that actual behavior as evidence for what should change.
 
 Do not bake temporary workflow habits, repository-specific collaboration patterns, or session-only instructions into a reusable skill unless the user explicitly wants that scope change.
-
-Do not assume the fix belongs in the skill file. Sometimes the right fix is to adjust a related workspace file such as `NOTES.md`, a companion instruction file, or another referenced local file.
 
 ## Workflow
 
@@ -114,12 +111,6 @@ Keep references one level deep, for example `[REFERENCE.md](REFERENCE.md)`.
 ## Optimization checklist
 
 Before finishing, verify:
-- [ ] The reported user problem was directly addressed
-- [ ] Relevant repository or conversation context was used
-- [ ] Earlier in-session usage of the target skill was incorporated when available
-- [ ] Repository workflow and session-only instructions were not accidentally encoded as target skill behavior
-- [ ] The actual problem was clarified before editing
-- [ ] The correct edit target was chosen instead of assuming the skill file must change
 - [ ] Description is specific and trigger-based
 - [ ] The skill's scope is clear
 - [ ] Instructions are concise and actionable
