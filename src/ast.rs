@@ -9,20 +9,20 @@ pub enum Stmt {
     Print { expr: Expr },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Pattern {
     Number(i64),
     Boolean(bool),
     Wildcard,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MatchArm {
     pub(crate) pattern: Pattern,
     pub(crate) value: Box<Expr>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Number(i64),
     String(String),
@@ -40,6 +40,10 @@ pub enum Expr {
     Fn {
         params: Vec<String>,
         body: Box<Expr>,
+    },
+    Call {
+        func: Box<Expr>,
+        args: Vec<Expr>,
     },
 }
 

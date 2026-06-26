@@ -6,7 +6,7 @@ use std::ops::Index;
 fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
     let t = tokens.index(*i);
     *i += 1;
-    match t {
+    let value = match t {
         Token::Number(i) => Expr::Number(*i),
         Token::String(s) => Expr::String(s.clone()),
         Token::True => Expr::Boolean(true),
@@ -125,9 +125,33 @@ fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
         }
         _ => {
             log!("invalid token:{t:?}");
+            *i -= 1;
             Expr::Number(0)
         }
-    }
+    };
+    let t = tokens.index(*i);
+    return if matches!(t, Token::LParen) {
+        *i += 1;
+        let mut t = tokens.index(*i);
+        let args = &mut Vec::new();
+        while !matches!(t, Token::RParen) {
+            args.push(parse_expr(tokens, i));
+            t = tokens.index(*i);
+            if matches!(t, Token::Comma) {
+                *i += 1;
+                t = tokens.index(*i);
+            } else {
+                log!("Expected Comma, get:{t:?}")
+            }
+        }
+        *i += 1;
+        Expr::Call {
+            func: Box::new(value),
+            args: args.to_vec(),
+        }
+    } else {
+        value
+    };
 }
 
 fn parse_mul_div(tokens: &Vec<Token>, i: &mut usize) -> Expr {
@@ -417,7 +441,32 @@ mod tests {
             && matches!(expr,
                 Expr::Fn { params, body }
                 if params.len() == 1
-        )
+                && matches!(
+                    body.as_ref(),
+                    Expr::Ident(s) if s == "x"
+                )
+            )
+        ));
+    }
+    #[test]
+    fn test_parse_function_call() {
+        let program = parse("let y = f(x);");
+        assert!(matches!(
+            &program.stmts[0],
+            Stmt::Let { name, expr }
+            if name == "y"
+            && matches!(
+                expr,
+                Expr::Call { func, args }
+                if matches!(
+                    func.as_ref(),
+                    Expr::Ident(s) if s =="f"
+                )
+                && args.len() == 1
+                && matches!(
+                    &args[0],
+                    Expr::Ident(s) if s == "x")
+            )
         ));
     }
 }

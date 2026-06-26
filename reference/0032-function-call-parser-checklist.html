@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0032 · 函数调用 parser 清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc; --paper: #fff; --ink: #1f2937; --muted: #6b7280;
+      --accent: #2563eb; --line: #e5e7eb; --good-bg: #ecfdf5; --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
+    main { max-width: 900px; margin: 32px auto; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 32px 40px 40px; }
+    .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #dbeafe; color: var(--accent); font-weight: 600; margin-bottom: 12px; font-size: 14px; }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .card { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: var(--good-bg); color: var(--good-fg); margin-bottom: 16px; }
+    ul { padding-left: 20px; }
+    code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; font-family: Consolas, monospace; }
+    pre { background: #0f172a; color: #e5e7eb; padding: 14px 16px; border-radius: 12px; overflow-x: auto; }
+    pre code { background: transparent; padding: 0; }
+    .footer { margin-top: 24px; color: var(--muted); font-size: 14px; }
+    @media print { body { background: #fff; } main { margin: 0; border: 0; max-width: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0032</div>
+    <h1>函数调用 parser 清单</h1>
+    <p>用途：快速确认 parser / AST 是否已经支持函数调用表达式 <code>expr(args)</code>。</p>
+
+    <section class="card">
+      <h2>本课后应做到</h2>
+      <ul>
+        <li><code>Expr::Call { func, args }</code> 已加入 AST</li>
+        <li>parser 在 primary 层末尾有 postfix 循环检查 <code>LParen</code></li>
+        <li><code>expr(args)</code> 调用能被正确解析</li>
+        <li><code>func</code> 可以是任意表达式</li>
+        <li>新增 parser / AST 测试并通过</li>
+      </ul>
+    </section>
+
+    <h2>当前仍不要求</h2>
+    <ul>
+      <li>evaluator 支持函数值或调用求值</li>
+      <li>作用域</li>
+    </ul>
+
+    <h2>AST 节点速查</h2>
+    <pre><code>Expr::Call {
+    func: Box&lt;Expr&gt;,       // 被调用的表达式
+    args: Vec&lt;Expr&gt;,       // 实参表达式列表（可为空）
+}</code></pre>
+
+    <h2>最小验证样例</h2>
+    <pre><code>// 样例 1：标识符调用
+输入:  add(1, 2)
+目标:  Expr::Call { func: Ident("add"), args: [Number(1), Number(2)] }
+
+// 样例 2：匿名函数直接调用
+输入:  (fn(x) { x + x })(3)
+目标:  Expr::Call { func: Fn { ... }, args: [Number(3)] }
+
+// 样例 3：无参调用
+输入:  f()
+目标:  Expr::Call { func: Ident("f"), args: [] }
+
+// 样例 4：链式调用
+输入:  f(1)(2)
+目标:  Expr::Call { func: Call { func: Ident("f"), args: [Number(1)] }, args: [Number(2)] }</code></pre>
+
+    <h2>最容易犯的错误</h2>
+    <ul>
+      <li>postfix 循环只写一次检查——如果当前就是 <code>LParen</code> 且消费后不再继续检查，链式调用就会报错</li>
+      <li>实参解析忘记处理空参数列表 <code>()</code></li>
+      <li>一边做 parser，一边顺手去改 evaluator，把课题做大</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0032-function-call-parser-checklist.html</code></p>
+  </main>
+</body>
+</html>
