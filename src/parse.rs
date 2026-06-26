@@ -78,6 +78,51 @@ fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
                 arms: arms,
             }
         }
+        Token::Fn => {
+            let mut t_n = tokens.index(*i);
+            if matches!(t_n, Token::LParen) {
+                *i += 1;
+            } else {
+                log!("Expected left paren, get:{t_n:?}")
+            };
+            let mut t_n = tokens.index(*i);
+            let params = &mut Vec::new();
+            while matches!(t_n, Token::Ident(_)) {
+                let s = match t_n {
+                    Token::Ident(s) => s,
+                    _ => "",
+                };
+                *i += 1;
+                t_n = tokens.index(*i);
+                params.push(s.to_string());
+                if matches!(t_n, Token::Comma) {
+                    *i += 1;
+                    t_n = tokens.index(*i);
+                };
+            }
+            if matches!(t_n, Token::RParen) {
+                *i += 1;
+                t_n = tokens.index(*i);
+            } else {
+                log!("Expected right paren, get:{t_n:?}")
+            }
+            if matches!(t_n, Token::LBrace) {
+                *i += 1;
+            } else {
+                log!("Expected left brace, get:{t_n:?}")
+            }
+            let body = parse_expr(tokens, i);
+            t_n = tokens.index(*i);
+            if matches!(t_n, Token::RBrace) {
+                *i += 1;
+            } else {
+                log!("Expected right brace, get:{t_n:?}")
+            }
+            Expr::Fn {
+                params: params.to_vec(),
+                body: Box::new(body),
+            }
+        }
         _ => {
             log!("invalid token:{t:?}");
             Expr::Number(0)
@@ -360,6 +405,19 @@ mod tests {
             Stmt::Let { name, expr }
             if *name == *"x"
             && matches!(expr, Expr::String(s) if *s == *"hello world")
+        ));
+    }
+    #[test]
+    fn test_parse_function_expression() {
+        let program = parse("let f = fn(x){x};");
+        assert!(matches!(
+            &program.stmts[0],
+            Stmt::Let { name, expr }
+            if name == "f"
+            && matches!(expr,
+                Expr::Fn { params, body }
+                if params.len() == 1
+        )
         ));
     }
 }
