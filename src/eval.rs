@@ -3,6 +3,7 @@ use crate::log;
 use crate::parse::parse;
 use crate::value::Value;
 use std::collections::HashMap;
+use std::iter::zip;
 
 pub fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
     match expr {
@@ -51,6 +52,35 @@ pub fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
                     .as_ref(),
                 env,
             )
+        }
+        Expr::Fn { params, body } => Value::Fn {
+            params: params.to_vec(),
+            body: body.as_ref().clone(),
+        },
+        Expr::Call { func, args } => {
+            let fun = eval_expr(func, env);
+            let real_agrs = &mut Vec::new();
+            for arg in args {
+                real_agrs.push(eval_expr(arg, env));
+            }
+            match fun {
+                Value::Fn { params, body } => {
+                    if params.len() != real_agrs.len() {
+                        log!("Unmatched params and args number.");
+                        Value::Integer(0)
+                    } else {
+                        let mut new_env = env.clone();
+                        for (param, arg) in zip(params, real_agrs) {
+                            new_env.insert(param, arg.clone());
+                        }
+                        eval_expr(&body, &new_env)
+                    }
+                }
+                _ => {
+                    log!("Expected function, get:{fun:?}");
+                    Value::Integer(0)
+                }
+            }
         }
         _ => {
             log!("Unavailable expr:{expr:?}");
@@ -146,6 +176,18 @@ mod tests {
         assert!(matches!(
             env.get("x").expect("can't get x"),
             Value::String(s) if *s == *"hello world"
+        ));
+    }
+
+    #[test]
+    fn test_eval_function() {
+        let program = parse("let f = fn(x){x+1};let x = f(5);");
+        let env = &mut HashMap::new();
+        eval_program_with_env(&program, env);
+
+        assert!(matches!(
+            env.get("x").expect("can't get x"),
+            Value::Integer(i) if  *i == 6
         ));
     }
 }

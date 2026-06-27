@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0033 · 函数表达式 evaluator 清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc; --paper: #fff; --ink: #1f2937; --muted: #6b7280;
+      --accent: #2563eb; --line: #e5e7eb; --good-bg: #ecfdf5; --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
+    main { max-width: 900px; margin: 32px auto; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 32px 40px 40px; }
+    .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #dbeafe; color: var(--accent); font-weight: 600; margin-bottom: 12px; font-size: 14px; }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .card { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: var(--good-bg); color: var(--good-fg); margin-bottom: 16px; }
+    ul { padding-left: 20px; }
+    code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; font-family: Consolas, monospace; }
+    pre { background: #0f172a; color: #e5e7eb; padding: 14px 16px; border-radius: 12px; overflow-x: auto; }
+    pre code { background: transparent; padding: 0; }
+    .footer { margin-top: 24px; color: var(--muted); font-size: 14px; }
+    @media print { body { background: #fff; } main { margin: 0; border: 0; max-width: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0033</div>
+    <h1>函数表达式 evaluator 清单</h1>
+    <p>用途：快速确认 evaluator 是否已经支持函数值和函数调用求值。</p>
+
+    <section class="card">
+      <h2>本课后应做到</h2>
+      <ul>
+        <li><code>Value::Fn { params, body }</code> 已加入</li>
+        <li><code>eval_expr(Expr::Fn)</code> 返回函数值</li>
+        <li><code>eval_expr(Expr::Call)</code> 正确执行调用</li>
+        <li>调用时创建局部环境（环境复制 + 参数绑定）</li>
+        <li>新增 evaluator 测试并通过</li>
+      </ul>
+    </section>
+
+    <h2>当前仍不要求</h2>
+    <ul>
+      <li>闭包（捕获外部变量）</li>
+      <li>多语句函数体</li>
+      <li>递归</li>
+    </ul>
+
+    <h2>调用求值步骤速查</h2>
+    <pre><code>Expr::Call { func, args } => {
+    1. let f = eval_expr(func, env);  // 得到 Value::Fn
+    2. let args_vals = args.iter().map(|a| eval_expr(a, env)).collect();
+    3. let mut local_env = env.clone();
+    4. for (param, val) in params.iter().zip(args_vals.iter()) {
+           local_env.insert(param.clone(), val.clone());
+       }
+    5. eval_expr(body, &local_env)
+}</code></pre>
+
+    <h2>最小验证样例</h2>
+    <pre><code>// 样例 1：基本调用
+输入:  let add = fn(x, y) { x + y }; let r = add(1, 2);
+目标:  r = Value::Integer(3)
+
+// 样例 2：无参
+输入:  let c = fn() { 42 }; let r = c();
+目标:  r = Value::Integer(42)
+
+// 样例 3：单参
+输入:  let double = fn(x) { x + x }; let r = double(5);
+目标:  r = Value::Integer(10)</code></pre>
+
+    <h2>最容易犯的错误</h2>
+    <ul>
+      <li>函数字面量求值时直接执行了 body（应该只返回 Value::Fn）</li>
+      <li>调用时没创建局部环境，参数绑定到了全局环境</li>
+      <li>Value::Fn 的 body 字段类型不对（应该是 <code>Box&lt;Expr&gt;</code> 以匹配 AST）</li>
+      <li>一边做 evaluator，一边改 parser 或 AST，把课题做大</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0033-function-expression-evaluator-checklist.html</code></p>
+  </main>
+</body>
+</html>

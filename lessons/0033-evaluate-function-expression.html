@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0033 · 求值函数表达式</title>
+  <style>
+    :root {
+      --bg: #f5f7fb; --paper: #ffffff; --ink: #1f2937; --muted: #6b7280;
+      --accent: #2563eb; --accent-soft: #dbeafe; --line: #e5e7eb;
+      --good-bg: #ecfdf5; --good-line: #86efac; --good-text: #065f46;
+      --warn-bg: #fff7ed; --warn-line: #fdba74; --warn-text: #9a3412;
+      --code-bg: #0f172a; --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.7; }
+    .page { max-width: 980px; margin: 32px auto; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 36px 48px 48px; box-shadow: 0 12px 28px rgba(15,23,42,0.06); }
+    .pill { display: inline-block; margin-bottom: 12px; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 700; }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.05rem; margin: 0 0 10px; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+    .box, .exercise { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin: 16px 0; background: #fbfdff; }
+    .goal { background: #eff6ff; }
+    code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; font-family: "Cascadia Code", Consolas, monospace; }
+    pre { background: var(--code-bg); color: var(--code-fg); border-radius: 12px; padding: 14px 16px; overflow-x: auto; border: 1px solid #1e293b; white-space: pre-wrap; }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    ul, ol { padding-left: 22px; }
+    .feedback { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-weight: 600; font-size: 0.96rem; }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea { width: 100%; min-height: 120px; border: 1px solid var(--line); border-radius: 10px; padding: 12px; font: inherit; resize: vertical; }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) { .page { padding: 24px 18px 28px; } }
+    @media print { body { background: #fff; } .page { box-shadow: none; border: 0; margin: 0; max-width: none; } button, textarea { display: none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0033</div>
+    <h1>求值函数表达式</h1>
+    <p class="lede">函数字面量和调用已经有 AST 了。这一课只做 evaluator：让函数成为运行时值，让函数调用真正执行。</p>
+
+    <section class="box goal">
+      <strong>这一步为什么重要：</strong>
+      这是函数从静态 AST 到动态运行的最后一步。做完这一课，<code>let add = fn(x, y) { x + y }; print add(1, 2);</code> 就会输出 <code>3</code>。语言第一次拥有了用户可定义的抽象能力。
+    </section>
+
+    <section>
+      <h2>本课范围</h2>
+      <ul>
+        <li>给 <code>Value</code> 新增函数值变体</li>
+        <li><code>eval_expr(Expr::Fn)</code> 返回函数值（不求值 body）</li>
+        <li><code>eval_expr(Expr::Call)</code> 执行函数调用：求值 func 和 args，创建局部作用域，求值 body</li>
+        <li>新增 evaluator 测试</li>
+      </ul>
+      <p>这一课<strong>不做</strong>：</p>
+      <ul>
+        <li>不做闭包（不捕获外部变量）</li>
+        <li>不做多语句函数体</li>
+        <li>不做递归</li>
+        <li>不改 scanner / parser / AST</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课的核心知识：函数值 + 调用执行</h2>
+
+      <h3>1. 函数值</h3>
+      <p>函数字面量求值时，不是立刻执行 body——而是返回一个函数值，包装参数名列表和 body 表达式。</p>
+      <pre><code>eval_expr(Expr::Fn { params, body }, env) => Value::Fn { params, body }</code></pre>
+      <p>这和 <code>Expr::Number</code> 变成 <code>Value::Integer</code> 的逻辑是一样的——AST 节点变成运行时值。</p>
+
+      <h3>2. 函数调用</h3>
+      <p>调用发生时：</p>
+      <ol>
+        <li>求值 func 表达式，得到 <code>Value::Fn { params, body }</code></li>
+        <li>依次求值所有实参表达式</li>
+        <li>创建 <strong>局部环境</strong>：克隆当前环境，把参数名和实参值绑定进去</li>
+        <li>在局部环境中求值 body 表达式</li>
+        <li>返回 body 的求值结果</li>
+      </ol>
+      <pre><code>// f(1, 2) 的执行步骤
+1. func = eval_expr(Ident("f"), env) => Value::Fn { params: ["x","y"], body: Binary { ... } }
+2. arg1 = eval_expr(Number(1), env) => Value::Integer(1)
+3. arg2 = eval_expr(Number(2), env) => Value::Integer(2)
+4. local_env = env.clone() + { "x" -> 1, "y" -> 2 }
+5. result = eval_expr(body, local_env) => Value::Integer(3)</code></pre>
+    </section>
+
+    <section>
+      <h2>局部作用域的细节</h2>
+      <p>当前的全局环境是 <code>HashMap&lt;String, Value&gt;</code>。调用函数时，需要在这个基础上加一层局部绑定。</p>
+      <p><strong>最简单的方案：</strong>复制一份环境，把参数绑定进去，传给 body 求值。</p>
+      <pre><code>let mut local_env = env.clone();
+for (param, arg) in params.iter().zip(args.iter()) {
+    local_env.insert(param.clone(), arg.clone());
+}
+eval_expr(body, &local_env)</code></pre>
+      <p>注意：复制环境意味着函数内部对环境的修改<strong>不会影响外部</strong>。这是有意为之的简化——真正的闭包语义后面再说。</p>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol>
+        <li>在 <code>Value</code> 中加入 <code>Fn { params: Vec&lt;String&gt;, body: Box&lt;Expr&gt; }</code></li>
+        <li>在 <code>eval_expr</code> 中为 <code>Expr::Fn</code> 添加分支：返回 <code>Value::Fn</code></li>
+        <li>在 <code>eval_expr</code> 中为 <code>Expr::Call</code> 添加分支：按上述步骤执行调用</li>
+        <li>新增 evaluator 测试，验证最小调用场景</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>目标输入 / 输出</h2>
+      <pre><code>输入:
+let add = fn(x, y) { x + y };
+print add(1, 2);
+
+期望输出:
+3</code></pre>
+      <pre><code>输入:
+let double = fn(x) { x + x };
+let result = double(5);
+print result;
+
+期望输出:
+10</code></pre>
+      <pre><code>输入:
+let constant = fn() { 42 };
+print constant();
+
+期望输出:
+42</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：为什么函数字面量求值时<strong>不执行</strong> body？</h2>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. 因为编译器会自动优化掉</label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. 因为 <code>fn(x){x+x}</code> 本身只是描述"如何计算"的一段代码，只有在被调用时才需要执行 body</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 因为 Rust 不支持立刻执行</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：为什么调用时要"复制"环境而不是直接修改？</h2>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 因为 Rust 的 HashMap 不允许修改</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 因为函数内部的参数绑定不应该污染外部环境——参数是函数私有的</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 因为复制比修改更快</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写一个最小函数调用 evaluator 测试</h2>
+      <p>写一个测试，验证定义函数并调用后得到了正确结果。</p>
+      <textarea id="self-check" placeholder="例如：&#10;let program = parse(&quot;let add = fn(x, y) { x + y }; let r = add(1, 2);&quot;);&#10;let mut env = HashMap::new();&#10;eval_program_with_env(&program, &mut env);&#10;...断言 env 中 r 对应 Value::Integer(3) ..."></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li><code>Value::Fn</code> 已加入</li>
+        <li><code>eval_expr(Expr::Fn)</code> 返回函数值</li>
+        <li><code>eval_expr(Expr::Call)</code> 正确执行调用：求值 func/args、构建局部环境、求值 body</li>
+        <li>新增 evaluator 测试并通过 <code>cargo test</code></li>
+        <li>scanner / parser / AST 未改动</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>提醒：</strong>
+      这节课的胜利条件是：<code>let add = fn(x,y){x+y}; print add(1,2);</code> 第一次输出 <code>3</code>。语言第一次拥有了"用户可定义的抽象"。
+    </section>
+
+    <section class="box">
+      <strong>参考来源：</strong>
+      <ul>
+        <li><a href="https://craftinginterpreters.com/functions.html" target="_blank" rel="noreferrer">Crafting Interpreters — Functions</a>：函数值在运行时的表示和调用机制。</li>
+        <li><a href="https://mitpress.mit.edu/sites/default/files/sicp/full-text/book/book-Z-H-21.html" target="_blank" rel="noreferrer">SICP — Environment Model of Evaluation</a>：求值时的环境模型——参数绑定如何创建新的求值上下文。</li>
+      </ul>
+      <p>做完这一课，扫描→解析→求值的函数全链路就通了。</p>
+    </section>
+
+    <section class="box">
+      <strong>有疑问？</strong>
+      随时向 agent 提问。它可以帮助你确认 <code>Value::Fn</code> 的字段类型、调用求值时环境复制的写法、以及 body 求值返回值的处理。
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0033-evaluate-function-expression.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> 函数字面量描述"如何计算"，调用时才执行。这就是函数值和函数调用的核心区别。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 函数字面量是惰性的——只在被调用时才执行 body。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 参数是函数私有的，复制环境是最小成本的方式来实现这个隔离。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 关键在于参数不应该改变外部绑定的值。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写一个测试样例。</strong>'); return; }
+      const ok = value.includes('Fn') || (value.includes('add') && value.includes('env'));
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 这节课最好的测试就是定义函数、调用它、断言结果正确。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够聚焦。</strong> 请写一个验证函数定义+调用全链路的测试。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>
