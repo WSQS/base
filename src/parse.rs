@@ -79,7 +79,7 @@ fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
             }
         }
         Token::Fn => {
-            let mut t_n = tokens.index(*i);
+            let t_n = tokens.index(*i);
             if matches!(t_n, Token::LParen) {
                 *i += 1;
             } else {
