@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0035 · 移除 print / 表达式语句清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc; --paper: #fff; --ink: #1f2937; --muted: #6b7280;
+      --accent: #2563eb; --line: #e5e7eb; --good-bg: #ecfdf5; --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
+    main { max-width: 900px; margin: 32px auto; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 32px 40px 40px; }
+    .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #dbeafe; color: var(--accent); font-weight: 600; margin-bottom: 12px; font-size: 14px; }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .card { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: var(--good-bg); color: var(--good-fg); margin-bottom: 16px; }
+    ul { padding-left: 20px; }
+    code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; font-family: Consolas, monospace; }
+    pre { background: #0f172a; color: #e5e7eb; padding: 14px 16px; border-radius: 12px; overflow-x: auto; }
+    pre code { background: transparent; padding: 0; }
+    .footer { margin-top: 24px; color: var(--muted); font-size: 14px; }
+    @media print { body { background: #fff; } main { margin: 0; border: 0; max-width: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0035</div>
+    <h1>移除 print / 表达式语句清单</h1>
+    <p>用途：快速确认 scanner 已移除 <code>print</code>、AST/parser 已支持表达式语句。</p>
+
+    <section class="card">
+      <h2>本课后应做到</h2>
+      <ul>
+        <li>scanner 已移除 <code>print</code> 关键字</li>
+        <li><code>Stmt::Expr { expr }</code> 已加入 AST</li>
+        <li>parser 已移除 <code>Token::Print</code> 分支</li>
+        <li>parser 已支持表达式语句（<code>expr;</code> 解析为 <code>Stmt::Expr</code>）</li>
+        <li>测试已迁移，新增测试并通过</li>
+      </ul>
+    </section>
+
+    <h2>当前仍不要求</h2>
+    <ul>
+      <li>evaluator 改动</li>
+      <li><code>print</code> builtin 注入</li>
+    </ul>
+
+    <h2>涉及的文件和改动</h2>
+    <pre><code>scan.rs:  删除两处 `"print" => Token::Print` （flush 闭包 + 末尾收尾）
+ast.rs:   删除 `Stmt::Print`，新增 `Stmt::Expr { expr: Expr }`（删除 `Token::Print` 可选）
+parse.rs: 删除 `Token::Print` 匹配分支，在 `_ =>` 兜底分支实现表达式语句</code></pre>
+
+    <h2>表达式语句 parser 速查</h2>
+    <pre><code>// parse() 函数的兜底分支
+_ => {
+    let expr = parse_expr(&tokens, &mut i);
+    // parse_expr 内部遇到 ; 时会有 log，但不会移动索引
+    // 检查分号，跳过它
+    let t = tokens.index(i);
+    if matches!(t, &Token::Semicolon) {
+        i += 1;
+    }
+    result.stmts.push(Stmt::Expr { expr });
+}</code></pre>
+
+    <h2>测试迁移要点</h2>
+    <pre><code>// 旧（不可用）：
+print x;
+print 1 + 2;
+let program = parse("print x;");
+assert!(matches!(..., Stmt::Print { ... }));
+
+// 新（本课可用）：
+let program = parse("x;");
+assert!(matches!(..., Stmt::Expr { ... }));
+
+// 有结果的验证改用 let 绑定：
+let program = parse("let x = 1 + 2;");  // 仍然有效
+let program = parse("1 + 2;");           // 表达式语句</code></pre>
+
+    <h2>最容易犯的错误</h2>
+    <ul>
+      <li>scanner 只删了 flush 闭包里的 <code>print</code>，忘了末尾收尾逻辑</li>
+      <li>parser 里表达式语句忘记处理分号</li>
+      <li>测试迁移不完整——留下引用 <code>Stmt::Print</code> 的测试导致编译失败</li>
+      <li>evaluator 的 <code>Stmt::Print</code> 分支导致了编译错误（保留但不可达即可）</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0035-remove-print-expression-statement-checklist.html</code></p>
+  </main>
+</body>
+</html>

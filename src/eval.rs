@@ -93,14 +93,8 @@ pub fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
 pub fn eval_program_with_env(program: &Program, env: &mut HashMap<String, Value>) {
     for stmt in &program.stmts {
         match stmt {
-            Stmt::Print { expr } => {
+            Stmt::Expr { expr } => {
                 let result = eval_expr(expr, &env);
-                match result {
-                    Value::Integer(i) => print!("{i}\n"),
-                    Value::Boolean(b) => print!("{b}\n"),
-                    Value::String(s) => print!("{s}\n"),
-                    _ => print!("Invalid value:{result:?}"),
-                }
             }
             Stmt::Let { name, expr } => {
                 let result = eval_expr(expr, &env);

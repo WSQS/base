@@ -6,7 +6,7 @@ pub struct Program {
 #[derive(Debug)]
 pub enum Stmt {
     Let { name: String, expr: Expr },
-    Print { expr: Expr },
+    Expr { expr: Expr },
 }
 
 #[derive(Debug, Clone)]
@@ -70,7 +70,6 @@ pub enum Token {
     Number(i64),
     String(String),
     Ident(String),
-    Print,
     Let,
     Match,
     Wildcard,

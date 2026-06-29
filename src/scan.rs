@@ -19,8 +19,6 @@ pub fn scan(input: &str) -> Vec<Token> {
                 } else {
                     if value == "let" {
                         result.push(Token::Let);
-                    } else if value == "print" {
-                        result.push(Token::Print);
                     } else if value == "fn" {
                         result.push(Token::Fn);
                     } else if value == "true" {
@@ -138,8 +136,6 @@ pub fn scan(input: &str) -> Vec<Token> {
         } else {
             if value == "let" {
                 result.push(Token::Let);
-            } else if value == "print" {
-                result.push(Token::Print);
             } else if value == "fn" {
                 result.push(Token::Fn);
             } else if value == "true" {
@@ -222,7 +218,7 @@ mod tests {
         assert!(matches!(tokens[2], Token::Equal));
         assert!(matches!(tokens[3], Token::Number(1)));
         assert!(matches!(tokens[4], Token::Semicolon));
-        assert!(matches!(tokens[5], Token::Print));
+        assert!(matches!(&tokens[5], Token::Ident(s) if s == "print"));
         assert!(matches!(&tokens[6], Token::Ident(name) if name == "x"));
         assert!(matches!(tokens[7], Token::Semicolon));
     }
