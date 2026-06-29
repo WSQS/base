@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0034 · 支持 builtin 函数</title>
+  <style>
+    :root {
+      --bg: #f5f7fb; --paper: #ffffff; --ink: #1f2937; --muted: #6b7280;
+      --accent: #2563eb; --accent-soft: #dbeafe; --line: #e5e7eb;
+      --good-bg: #ecfdf5; --good-line: #86efac; --good-text: #065f46;
+      --warn-bg: #fff7ed; --warn-line: #fdba74; --warn-text: #9a3412;
+      --code-bg: #0f172a; --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.7; }
+    .page { max-width: 980px; margin: 32px auto; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 36px 48px 48px; box-shadow: 0 12px 28px rgba(15,23,42,0.06); }
+    .pill { display: inline-block; margin-bottom: 12px; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 700; }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.05rem; margin: 0 0 10px; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+    .box, .exercise { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin: 16px 0; background: #fbfdff; }
+    .goal { background: #eff6ff; }
+    code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; font-family: "Cascadia Code", Consolas, monospace; }
+    pre { background: var(--code-bg); color: var(--code-fg); border-radius: 12px; padding: 14px 16px; overflow-x: auto; border: 1px solid #1e293b; white-space: pre-wrap; }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    ul, ol { padding-left: 22px; }
+    .feedback { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-weight: 600; font-size: 0.96rem; }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea { width: 100%; min-height: 120px; border: 1px solid var(--line); border-radius: 10px; padding: 12px; font: inherit; resize: vertical; }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) { .page { padding: 24px 18px 28px; } }
+    @media print { body { background: #fff; } .page { box-shadow: none; border: 0; margin: 0; max-width: none; } button, textarea { display: none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0034</div>
+    <h1>支持 builtin 函数</h1>
+    <p class="lede">函数调用已经能跑了，但所有函数都必须用户定义。这一课只做 evaluator：让语言第一次拥有内置函数——由 Rust 原生实现、在环境初始化时注入的函数。</p>
+
+    <section class="box goal">
+      <strong>这一步为什么重要：</strong>
+      builtin 函数是语言的"原生能力接口"。用户定义的函数只是组合已有的操作，而 builtin 可以做到语言语法层面做不到的事——比如类型检查、字符串操作、I/O。第一个 builtin 成功后，后续添加新 native 能力只需一行代码。
+    </section>
+
+    <section>
+      <h2>本课范围</h2>
+      <ul>
+        <li>给 <code>Value</code> 新增 builtin 函数变体</li>
+        <li>在 <code>eval_expr(Expr::Call)</code> 中识别并执行 builtin</li>
+        <li>在环境初始化时预注入第一个 builtin：<code>add(a, b)</code></li>
+        <li>新增 evaluator 测试</li>
+      </ul>
+      <p>这一课<strong>不做</strong>：</p>
+      <ul>
+        <li>不做多个 builtin（先把基础设施做稳）</li>
+        <li>不做类型错误处理（builtin 内部可以先简单断言）</li>
+        <li>不改 scanner / parser / AST</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课的核心知识</h2>
+
+      <h3>1. Builtin 值类型</h3>
+      <p><code>Value::Fn</code> 存的是参数名 + body 表达式——调用时创建局部环境、在环境中求值。</p>
+      <p><code>Value::Builtin</code> 存的是一个 Rust 函数指针——调用时直接把已求值的实参传进去，由 Rust 代码执行。</p>
+      <pre><code>// Builtin 签名
+Value::Builtin(fn(Vec&lt;Value&gt;) -&gt; Value)
+
+// 一个具体的 builtin 例子
+fn add_builtin(args: Vec&lt;Value&gt;) -> Value {
+    match (&args[0], &args[1]) {
+        (Value::Integer(a), Value::Integer(b)) => Value::Integer(a + b),
+        _ => { log!("add expects two integers"); Value::Integer(0) }
+    }
+}</code></pre>
+
+      <h3>2. 调用时的分派</h3>
+      <p>在 <code>Expr::Call</code> 求值时，求值 func 之后加一个 <code>match</code>：</p>
+      <pre><code>match fun {
+    Value::Fn { params, body } => {
+        // 现有的逻辑：克隆环境、绑定参数、求值 body
+    }
+    Value::Builtin(f) => {
+        // 新逻辑：求值所有实参 → 传给 f → 直接返回结果
+        let args_vals: Vec&lt;Value&gt; = args.iter()
+            .map(|a| eval_expr(a, env))
+            .collect();
+        f(args_vals)
+    }
+    _ => { ... }
+}</code></pre>
+
+      <h3>3. 环境初始化注入</h3>
+      <p>在 <code>eval_program()</code> 创建初始 env 后，注入 builtin：</p>
+      <pre><code>pub fn eval_program(program: &Program) {
+    let mut env = HashMap::new();
+    env.insert("add".to_string(), Value::Builtin(add_builtin));
+    eval_program_with_env(program, &mut env);
+}</code></pre>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol>
+        <li>在 <code>Value</code> 中加入 <code>Builtin(fn(Vec&lt;Value&gt;) -&gt; Value)</code></li>
+        <li>在 <code>Expr::Call</code> 的 <code>match fun</code> 中新增 <code>Value::Builtin(f)</code> 分支</li>
+        <li>实现 <code>add_builtin</code> 函数</li>
+        <li>在 <code>eval_program</code> 中注入 <code>add</code> 到初始环境</li>
+        <li>新增测试</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>目标输入 / 输出</h2>
+      <pre><code>输入:
+let x = add(1, 2);
+print x;
+
+期望输出:
+3</code></pre>
+      <pre><code>输入:
+let a = add(10, add(3, 4));
+print a;
+
+期望输出:
+17</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：Builtin 和用户定义函数在调用时最大的区别是什么？</h2>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. Builtin 执行更快</label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. 用户定义函数需要创建局部环境+绑定参数+求值 body，Builtin 直接调用 Rust 函数</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. Builtin 不能有参数</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：为什么 builtin 要注入到全局环境而不是另建一个表？</h2>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 因为 Rust 不支持多个 HashMap</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 因为 builtin 也是值——把 <code>add</code> 放到全局环境里，它就和用户定义的 <code>let</code> 绑定一样被查找，调用路径完全统一</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 因为传入参数的方式不同</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>自检：写一个 <code>add</code> builtin 的 evaluator 测试</h2>
+      <p>写一个测试，验证 <code>add(1, 2)</code> 返回 <code>3</code>。</p>
+      <textarea id="self-check" placeholder="例如：&#10;let program = parse(&quot;let x = add(1, 2);&quot;);&#10;let mut env = HashMap::new();&#10;eval_program(&amp;program); // 或者手动: env.insert(&quot;add&quot;, Value::Builtin(add_builtin));&#10;...断言 x == Value::Integer(3) ..."></textarea>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkSelfCheck()">对照检查</button>
+        <button class="secondary" type="button" onclick="resetSelfCheck()">清空</button>
+      </div>
+      <div id="feedback-3" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li><code>Value::Builtin</code> 已加入</li>
+        <li><code>Expr::Call</code> 中已新增 <code>Value::Builtin</code> 分支</li>
+        <li><code>add</code> builtin 已实现并注入到初始环境</li>
+        <li><code>add(1, 2)</code> 返回 <code>3</code></li>
+        <li>新增 evaluator 测试并通过 <code>cargo test</code></li>
+        <li>scanner / parser / AST 未改动</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>提醒：</strong>
+      这节课的胜利条件是：<code>add(1, 2)</code> 第一次通过 builtin 函数返回 <code>3</code>。后续每加一个 builtin 都是同一条路——加 Rust 函数 → 注入环境。
+    </section>
+
+    <section class="box">
+      <strong>有疑问？</strong>
+      随时向 agent 提问。它可以帮助你确认 Builtin 的类型签名、Expr::Call 中 match 分支的写法、以及环境注入的位置。
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0034-builtin-function.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> Builtin 不走环境克隆+参数绑定+body 求值这条路径——直接在 Rust 侧执行。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 关键是执行路径不同，不是性能。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 放入同一个环境意味着调用路径统一：先查名字，再根据值类型分派。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 关键在于统一——Builtin 和用户函数在环境中地位相同。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+    function normalize(text) { return text.replace(/\r/g, '').trim(); }
+    function checkSelfCheck() {
+      const value = normalize(document.getElementById('self-check').value);
+      if (!value) { setFeedback('feedback-3', false, '<strong>先写一个测试样例。</strong>'); return; }
+      const ok = value.includes('add') && (value.includes('env') || value.includes('3'));
+      if (ok) {
+        setFeedback('feedback-3', true, '<strong>方向对了。</strong> 核心是注入 builtin 到环境 + 调用验证结果。');
+      } else {
+        setFeedback('feedback-3', false, '<strong>还不够聚焦。</strong> 请写一个直接验证 add builtin 的测试。');
+      }
+    }
+    function resetSelfCheck() {
+      document.getElementById('self-check').value = '';
+      clearFeedback('feedback-3');
+    }
+  </script>
+</body>
+</html>

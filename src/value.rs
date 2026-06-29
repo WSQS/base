@@ -6,4 +6,5 @@ pub enum Value {
     Boolean(bool),
     String(String),
     Fn { params: Vec<String>, body: Expr },
+    BuiltinFn(fn(Vec<Value>) -> Value),
 }

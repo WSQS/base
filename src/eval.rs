@@ -59,23 +59,24 @@ pub fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
         },
         Expr::Call { func, args } => {
             let fun = eval_expr(func, env);
-            let real_agrs = &mut Vec::new();
+            let real_args = &mut Vec::new();
             for arg in args {
-                real_agrs.push(eval_expr(arg, env));
+                real_args.push(eval_expr(arg, env));
             }
             match fun {
                 Value::Fn { params, body } => {
-                    if params.len() != real_agrs.len() {
+                    if params.len() != real_args.len() {
                         log!("Unmatched params and args number.");
                         Value::Integer(0)
                     } else {
                         let mut new_env = env.clone();
-                        for (param, arg) in zip(params, real_agrs) {
+                        for (param, arg) in zip(params, real_args) {
                             new_env.insert(param, arg.clone());
                         }
                         eval_expr(&body, &new_env)
                     }
                 }
+                Value::BuiltinFn(func) => func(real_args.to_vec()),
                 _ => {
                     log!("Expected function, get:{fun:?}");
                     Value::Integer(0)
@@ -188,6 +189,28 @@ mod tests {
         assert!(matches!(
             env.get("x").expect("can't get x"),
             Value::Integer(i) if  *i == 6
+        ));
+    }
+
+    #[test]
+    fn test_eval_builtin_function() {
+        let program = parse("let x = add(1,2);");
+        let env = &mut HashMap::new();
+        fn add_builtin(args: Vec<Value>) -> Value {
+            match (&args[0], &args[1]) {
+                (Value::Integer(a), Value::Integer(b)) => Value::Integer(a + b),
+                _ => {
+                    log!("add expects two integers");
+                    Value::Integer(0)
+                }
+            }
+        }
+        env.insert("add".to_string(), Value::BuiltinFn(add_builtin));
+        eval_program_with_env(&program, env);
+
+        assert!(matches!(
+            env.get("x").expect("can't get x"),
+            Value::Integer(i) if  *i == 3
         ));
     }
 }
