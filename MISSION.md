@@ -20,12 +20,12 @@
 **退出标志**：scanner、parser、AST 的错误边界清楚；测试可覆盖合法和非法输入。
 **状态**：已完成。
 
-### Phase 1：Executable core（当前，接近完成）
+### Phase 1：Executable core ✓
 **目标**：一段完整程序可走完 scanner → parser → AST → evaluator。
-**已具备**：Integer/Boolean/String/Fn 四种值、算术/比较/match/函数字面量与调用表达、表达式语句、builtin 调用；`print` 已降级为 builtin；模块已拆分。
-**退出标志**：warning 清零、builtin 基础集就绪、全量测试通过。
+**已具备**：Integer/Boolean/String/Fn 四种值、算术/比较/match/函数字面量与调用表达、表达式语句、builtin 调用；`print` 已降级为 builtin；模块已拆分；warning 清零（仅保留 2 个防护性 `_ =>`）。
+**状态**：已完成。
 
-### Phase 2：Self-hosting prerequisites
+### Phase 2：Self-hosting prerequisites（当前）
 **目标**：补齐自举所需的最小语言能力集。
 **内容**：数据结构（list/vector）、递归、block/scope、文件 I/O、错误处理、script mode。
 **退出标志**：可写 20–50 行脚本读取文件、操作数据、作递归计算。
