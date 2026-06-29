@@ -94,7 +94,7 @@ pub fn eval_program_with_env(program: &Program, env: &mut HashMap<String, Value>
     for stmt in &program.stmts {
         match stmt {
             Stmt::Expr { expr } => {
-                let result = eval_expr(expr, &env);
+                eval_expr(expr, &env);
             }
             Stmt::Let { name, expr } => {
                 let result = eval_expr(expr, &env);
@@ -107,8 +107,19 @@ pub fn eval_program_with_env(program: &Program, env: &mut HashMap<String, Value>
     }
 }
 
+fn print_builtin(args: Vec<Value>) -> Value {
+    match &args[0] {
+        Value::Integer(i) => print!("{i}\n"),
+        Value::Boolean(b) => print!("{b}\n"),
+        Value::String(s) => print!("{s}\n"),
+        _ => print!("{:?}\n", args[0]),
+    }
+    args[0].clone()
+}
+
 pub fn eval_program(program: &Program) {
     let mut env = HashMap::new();
+    env.insert("print".to_string(), Value::BuiltinFn(print_builtin));
     eval_program_with_env(program, &mut env);
 }
 

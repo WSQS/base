@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0036 · print 作为 builtin 函数</title>
+  <style>
+    :root {
+      --bg: #f5f7fb; --paper: #ffffff; --ink: #1f2937; --muted: #6b7280;
+      --accent: #2563eb; --accent-soft: #dbeafe; --line: #e5e7eb;
+      --good-bg: #ecfdf5; --good-line: #86efac; --good-text: #065f46;
+      --warn-bg: #fff7ed; --warn-line: #fdba74; --warn-text: #9a3412;
+      --code-bg: #0f172a; --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.7; }
+    .page { max-width: 980px; margin: 32px auto; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 36px 48px 48px; box-shadow: 0 12px 28px rgba(15,23,42,0.06); }
+    .pill { display: inline-block; margin-bottom: 12px; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 700; }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.05rem; margin: 0 0 10px; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+    .box, .exercise { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin: 16px 0; background: #fbfdff; }
+    .goal { background: #eff6ff; }
+    code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; font-family: "Cascadia Code", Consolas, monospace; }
+    pre { background: var(--code-bg); color: var(--code-fg); border-radius: 12px; padding: 14px 16px; overflow-x: auto; border: 1px solid #1e293b; white-space: pre-wrap; }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    ul, ol { padding-left: 22px; }
+    .feedback { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-weight: 600; font-size: 0.96rem; }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea { width: 100%; min-height: 120px; border: 1px solid var(--line); border-radius: 10px; padding: 12px; font: inherit; resize: vertical; }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) { .page { padding: 24px 18px 28px; } }
+    @media print { body { background: #fff; } .page { box-shadow: none; border: 0; margin: 0; max-width: none; } button, textarea { display: none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0036</div>
+    <h1><code>print</code> 作为 builtin 函数</h1>
+    <p class="lede">第 35 课已经把 <code>print</code> 从关键字降为普通标识符，表达式语句已就绪。这一课只做 evaluator：注入 <code>print</code> 作为 builtin，让 <code>print("hello")</code> 真正运行。</p>
+
+    <section class="box goal">
+      <strong>这一步为什么重要：</strong>
+      这是"print 降级"的最后一步。做完后，<code>print</code> 和其他 builtin（<code>add</code> 等）在运行时地位完全相同——都是全局环境中的 <code>Value::BuiltinFn</code>。语句系统也在此定型：<code>let</code> + 表达式语句。
+    </section>
+
+    <section>
+      <h2>本课范围</h2>
+      <ul>
+        <li>实现 <code>print_builtin</code>：接收一个参数，打印后返回该值</li>
+        <li>在 <code>eval_program()</code> 初始环境中注入 <code>"print" → Value::BuiltinFn(print_builtin)</code></li>
+        <li>将 <code>Stmt::Expr</code> 的分支改为纯粹的求值（不再自动打印结果）</li>
+        <li>清理掉当前 <code>Stmt::Expr</code> 中残留的旧的打印逻辑</li>
+        <li>清理 evaluator 中的 unreachable pattern warning</li>
+      </ul>
+      <p>这一课<strong>不做</strong>：</p>
+      <ul>
+        <li>不改 scanner / parser / AST</li>
+        <li>不做其他 builtin</li>
+        <li>不做多参数 print</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课的核心知识</h2>
+
+      <h3>1. print builtin 的实现</h3>
+      <p><code>print</code> 接收一个参数，按类型格式化输出，返回原值：</p>
+      <pre><code>fn print_builtin(args: Vec&lt;Value&gt;) -> Value {
+    match &args[0] {
+        Value::Integer(i) => print!("{i}\n"),
+        Value::Boolean(b) => print!("{b}\n"),
+        Value::String(s) => print!("{s}\n"),
+        _ => print!("{:?}\n", args[0]),
+    }
+    args[0].clone()  // 返回原值，让 print 也可以作为表达式的一部分
+}</code></pre>
+
+      <h3>2. Stmt::Expr 改为纯求值</h3>
+      <p>当前 <code>Stmt::Expr</code> 分支内还是旧的打印逻辑。需要简化为：</p>
+      <pre><code>// 旧（第 35 课临时状态）
+Stmt::Expr { expr } => {
+    let result = eval_expr(expr, &env);
+    match result {
+        Value::Integer(i) => print!("{i}\n"),
+        // ...
+    }
+}
+
+// 新（本课）
+Stmt::Expr { expr } => {
+    eval_expr(expr, &env);  // 求值，丢弃结果
+}</code></pre>
+
+      <h3>3. 环境注入</h3>
+      <p>在 <code>eval_program()</code> 中注入 <code>print</code>：</p>
+      <pre><code>pub fn eval_program(program: &Program) {
+    let mut env = HashMap::new();
+    env.insert("print".to_string(), Value::BuiltinFn(print_builtin));
+    eval_program_with_env(program, &mut env);
+}</code></pre>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol>
+        <li>在 <code>eval.rs</code> 中实现 <code>print_builtin</code> 函数</li>
+        <li>将 <code>Stmt::Expr</code> 分支简化为纯求值（删除 print! 及其 match）</li>
+        <li>在 <code>eval_program()</code> 中注入 <code>print</code> 到初始环境</li>
+        <li>清理 evaluator 中的 unreachable pattern warning</li>
+        <li>运行测试，确认 <code>print(x)</code> 形式的测试仍然通过</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>目标输入 / 输出</h2>
+      <pre><code>输入:
+let x = 42;
+print(x);
+
+期望输出:
+42</code></pre>
+      <pre><code>输入:
+print("hello");
+
+期望输出:
+hello</code></pre>
+      <pre><code>输入:
+let result = print(1 + 2);
+print(result);
+
+期望输出:
+3      ← 第一次 print 输出
+3      ← 第二次 print 返回原值，再输出</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 1：为什么表达式语句不需要输出结果？</h2>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. 因为结果已经被丢弃了</label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. 因为输出是 <code>print</code> 函数的职责，不是语句系统的事</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 因为 Rust 的语句不能有值</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查 2：<code>print</code> 为什么要返回原值？</h2>
+      <div>
+        <label><input type="radio" name="quiz2" value="a" /> A. 为了调试方便</label><br />
+        <label><input type="radio" name="quiz2" value="b" /> B. 这样 <code>let x = print(42);</code> 既输出 42，又绑定 42 —— print 是一个有副作用的"通透"函数</label><br />
+        <label><input type="radio" name="quiz2" value="c" /> C. 因为编译器强制要求返回值</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz2()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz2()">重做</button>
+      </div>
+      <div id="feedback-2" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li><code>print_builtin</code> 已实现</li>
+        <li><code>print</code> 已在 <code>eval_program()</code> 中注入初始环境</li>
+        <li><code>Stmt::Expr</code> 已改为纯求值</li>
+        <li>evaluator 中的 unreachable pattern 已清理</li>
+        <li><code>print("hello")</code> 能正确输出，<code>print(x)</code> 形式的测试通过</li>
+        <li>全量测试通过</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>提醒：</strong>
+      这节课的胜利条件是：<code>print("hello")</code> 输出 hello，<code>1 + 2;</code> 作为表达式语句不输出任何东西。
+    </section>
+
+    <section class="box">
+      <strong>有疑问？</strong>
+      随时向 agent 提问。它可以帮助你确认 print_builtin 的签名、Stmt::Expr 的简化方式、以及环境注入的位置。
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0036-print-builtin-function.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> 输出是 print 函数的职责，不应该是语句系统的默认行为。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 关键是职责分离。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+    function checkQuiz2() {
+      const answer = document.querySelector('input[name="quiz2"]:checked');
+      if (!answer) { setFeedback('feedback-2', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-2', true, '<strong>正确。</strong> 通透值设计让 print 既做副作用又作为表达式的一部分。');
+      } else {
+        setFeedback('feedback-2', false, '<strong>不对。</strong> 关键是设计选择——print 是一个通透函数。');
+      }
+    }
+    function resetQuiz2() {
+      document.querySelectorAll('input[name="quiz2"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-2');
+    }
+  </script>
+</body>
+</html>
