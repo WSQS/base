@@ -62,6 +62,8 @@ pub enum Token {
     EqualGreater,
     LParen,
     RParen,
+    LBracket,
+    RBracket,
     LBrace,
     RBrace,
     Equal,

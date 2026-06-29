@@ -89,6 +89,12 @@ pub fn scan(input: &str) -> Vec<Token> {
         } else if *c == ')' {
             flush();
             result.push(Token::RParen)
+        } else if *c == '[' {
+            flush();
+            result.push(Token::LBracket)
+        } else if *c == ']' {
+            flush();
+            result.push(Token::RBracket)
         } else if *c == '{' {
             flush();
             result.push(Token::LBrace)
@@ -286,5 +292,16 @@ mod tests {
         assert!(matches!(tokens[7], Token::Number(i) if i == 1));
         assert!(matches!(tokens[8], Token::RBrace));
         assert!(matches!(tokens[9], Token::Semicolon));
+    }
+
+    #[test]
+    fn test_scan_bracket() {
+        let tokens = scan("let l = [];");
+        assert!(matches!(tokens[0], Token::Let));
+        assert!(matches!(&tokens[1], Token::Ident(i) if *i == *"l"));
+        assert!(matches!(tokens[2], Token::Equal));
+        assert!(matches!(tokens[3], Token::LBracket));
+        assert!(matches!(tokens[4], Token::RBracket));
+        assert!(matches!(tokens[5], Token::Semicolon));
     }
 }
