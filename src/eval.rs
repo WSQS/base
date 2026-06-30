@@ -83,6 +83,13 @@ pub fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
                 }
             }
         }
+        Expr::List(l) => {
+            let list = &mut Vec::new();
+            for i in l {
+                list.push(eval_expr(i, env));
+            }
+            Value::List(list.to_vec())
+        }
         _ => {
             log!("Unavailable expr:{expr:?}");
             Value::Integer(0)
@@ -112,6 +119,20 @@ fn print_builtin(args: Vec<Value>) -> Value {
         Value::Integer(i) => print!("{i}\n"),
         Value::Boolean(b) => print!("{b}\n"),
         Value::String(s) => print!("{s}\n"),
+        Value::List(l) => {
+            let mut first = true;
+            print!("[");
+            for i in l {
+                if !first {
+                    print!(" ,")
+                }
+                first = false;
+                let arg = &mut Vec::new();
+                arg.push(i.clone());
+                print_builtin(arg.to_vec());
+            }
+            print!("]")
+        }
         _ => print!("{:?}\n", args[0]),
     }
     args[0].clone()
@@ -216,6 +237,27 @@ mod tests {
         assert!(matches!(
             env.get("x").expect("can't get x"),
             Value::Integer(i) if  *i == 3
+        ));
+    }
+
+    #[test]
+    fn test_eval_list() {
+        let program = parse("let x = [1,2];");
+        let env = &mut HashMap::new();
+        eval_program_with_env(&program, env);
+
+        assert!(matches!(
+            env.get("x").expect("can't get x"),
+            Value::List(l)
+            if l.len() == 2
+            && matches!(
+                l[0],
+                Value::Integer(i) if i == 1
+            )
+            && matches!(
+                l[1],
+                Value::Integer(i) if i == 2
+            )
         ));
     }
 }

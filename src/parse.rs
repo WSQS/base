@@ -225,12 +225,7 @@ fn parse_comparison(tokens: &Vec<Token>, i: &mut usize) -> Expr {
 }
 
 fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Expr {
-    let e = parse_comparison(tokens, i);
-    let t = tokens.index(*i);
-    if !matches!(t, Token::Semicolon) {
-        log!("Expected semicolon, get:{t:?}")
-    }
-    e
+    parse_comparison(tokens, i)
 }
 
 pub fn parse(input: &str) -> Program {

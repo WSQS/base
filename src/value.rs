@@ -7,4 +7,5 @@ pub enum Value {
     String(String),
     Fn { params: Vec<String>, body: Expr },
     BuiltinFn(fn(Vec<Value>) -> Value),
+    List(Vec<Value>),
 }

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0039 · list 字面量 evaluator 清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc; --paper: #fff; --ink: #1f2937; --muted: #6b7280;
+      --accent: #2563eb; --line: #e5e7eb; --good-bg: #ecfdf5; --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
+    main { max-width: 900px; margin: 32px auto; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 32px 40px 40px; }
+    .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #dbeafe; color: var(--accent); font-weight: 600; margin-bottom: 12px; font-size: 14px; }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .card { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: var(--good-bg); color: var(--good-fg); margin-bottom: 16px; }
+    ul { padding-left: 20px; }
+    code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; font-family: Consolas, monospace; }
+    pre { background: #0f172a; color: #e5e7eb; padding: 14px 16px; border-radius: 12px; overflow-x: auto; }
+    pre code { background: transparent; padding: 0; }
+    .footer { margin-top: 24px; color: var(--muted); font-size: 14px; }
+    @media print { body { background: #fff; } main { margin: 0; border: 0; max-width: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0039</div>
+    <h1>list 字面量 evaluator 清单</h1>
+    <p>用途：快速确认 evaluator 是否已支持 list 运行时值和 <code>print</code> 输出。</p>
+
+    <section class="card">
+      <h2>本课后应做到</h2>
+      <ul>
+        <li><code>Value::List(Vec&lt;Value&gt;)</code> 已加入</li>
+        <li><code>eval_expr(Expr::List(...))</code> 递归求值</li>
+        <li><code>print</code> 已支持输出 list</li>
+        <li>新增 evaluator 测试并通过</li>
+      </ul>
+    </section>
+
+    <h2>当前仍不要求</h2>
+    <ul>
+      <li>list 操作 builtin</li>
+      <li>list pattern 匹配</li>
+    </ul>
+
+    <h2>list 求值速查</h2>
+    <pre><code>Expr::List(elements) => {
+    let values: Vec&lt;Value&gt; = elements.iter()
+        .map(|e| eval_expr(e, env))
+        .collect();
+    Value::List(values)
+}</code></pre>
+
+    <h2>最小验证样例</h2>
+    <pre><code>输入:  let x = [1, 2]; print(x);
+期望:  输出 [1, 2]
+
+输入:  let x = []; print(x);
+期望:  输出 []</code></pre>
+
+    <h2>最容易犯的错误</h2>
+    <ul>
+      <li>list 元素没有递归求值就直接传入</li>
+      <li>加了 <code>Value::List</code> 但忘记在 <code>print</code> 中加输出分支</li>
+      <li>一边做 evaluator，一边顺手加 list 操作 builtin，把课题做大</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0039-list-literal-evaluator-checklist.html</code></p>
+  </main>
+</body>
+</html>
