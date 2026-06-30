@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0040 · list 操作 builtin</title>
+  <style>
+    :root {
+      --bg: #f5f7fb; --paper: #ffffff; --ink: #1f2937; --muted: #6b7280;
+      --accent: #2563eb; --accent-soft: #dbeafe; --line: #e5e7eb;
+      --good-bg: #ecfdf5; --good-line: #86efac; --good-text: #065f46;
+      --warn-bg: #fff7ed; --warn-line: #fdba74; --warn-text: #9a3412;
+      --code-bg: #0f172a; --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.7; }
+    .page { max-width: 980px; margin: 32px auto; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 36px 48px 48px; box-shadow: 0 12px 28px rgba(15,23,42,0.06); }
+    .pill { display: inline-block; margin-bottom: 12px; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 700; }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.05rem; margin: 0 0 10px; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+    .box, .exercise { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin: 16px 0; background: #fbfdff; }
+    .goal { background: #eff6ff; }
+    code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; font-family: "Cascadia Code", Consolas, monospace; }
+    pre { background: var(--code-bg); color: var(--code-fg); border-radius: 12px; padding: 14px 16px; overflow-x: auto; border: 1px solid #1e293b; white-space: pre-wrap; }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    ul, ol { padding-left: 22px; }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) { .page { padding: 24px 18px 28px; } }
+    @media print { body { background: #fff; } .page { box-shadow: none; border: 0; margin: 0; max-width: none; } button, textarea { display: none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0040</div>
+    <h1>list 操作 builtin</h1>
+    <p class="lede">list 已经可以作为值存储和打印。这一课只做 evaluator：注入四个 list 操作 builtin，让 list 第一次可以真正被操作。</p>
+
+    <section class="box goal">
+      <strong>为什么重要：</strong>
+      没有操作的 list 只是一个静态容器。<code>len</code>/<code>head</code>/<code>tail</code>/<code>push</code> 四个操作覆盖了自举中最基本的遍历、取元素和构造。
+    </section>
+
+    <section>
+      <h2>本课范围</h2>
+      <ul>
+        <li>实现四个 builtin：<code>len</code>、<code>head</code>、<code>tail</code>、<code>push</code></li>
+        <li>在 <code>eval_program()</code> 中注入到初始环境</li>
+        <li>新增 evaluator 测试</li>
+      </ul>
+      <p>这一课<strong>不做</strong>：</p>
+      <ul>
+        <li>不改 scanner / parser / AST</li>
+        <li>不做 list pattern 或 list 高阶函数</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>四个 builtin</h2>
+
+      <pre><code>len(list) → Integer
+返回 list 的长度。len([1, 2, 3]) → 3</code></pre>
+
+      <pre><code>head(list) → Value
+返回 list 的第一个元素。head([]) 报错或返回默认值</code></pre>
+
+      <pre><code>tail(list) → List
+返回去掉第一个元素后的新 list。tail([1, 2, 3]) → [2, 3]</code></pre>
+
+      <pre><code>push(list, x) → List
+返回在后面追加 x 的新 list。push([1, 2], 3) → [1, 2, 3]</code></pre>
+    </section>
+
+    <section>
+      <h2>目标输入 / 输出</h2>
+      <pre><code>let x = [1, 2, 3];
+print(len(x));   → 3
+
+let y = tail(x);
+print(y);        → [2, 3]
+
+let z = push([1, 2], 3);
+print(z);        → [1, 2, 3]</code></pre>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li><code>len</code>、<code>head</code>、<code>tail</code>、<code>push</code> 四个 builtin 均已实现</li>
+        <li>全部在 <code>eval_program()</code> 中注入</li>
+        <li>新增 evaluator 测试并通过 <code>cargo test</code></li>
+        <li>scanner / parser / AST 未改动</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>提醒：</strong>
+      四个 builtin 都是同一个模式——match <code>Value::List</code> → 调 <code>Vec</code> 方法 → 返回 <code>Value</code>。
+    </section>
+
+    <section class="box">
+      <strong>有疑问？</strong>
+      随时向 agent 提问。实现模式和 <code>add_builtin</code> 完全一致。
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0040-list-builtins.html</code></p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference 0040 · list builtins 清单</title>
+  <style>
+    :root {
+      --bg: #f7f8fc; --paper: #fff; --ink: #1f2937; --muted: #6b7280;
+      --accent: #2563eb; --line: #e5e7eb; --good-bg: #ecfdf5; --good-fg: #065f46;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
+    main { max-width: 900px; margin: 32px auto; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 32px 40px 40px; }
+    .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #dbeafe; color: var(--accent); font-weight: 600; margin-bottom: 12px; font-size: 14px; }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .card { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: var(--good-bg); color: var(--good-fg); margin-bottom: 16px; }
+    ul { padding-left: 20px; }
+    code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; font-family: Consolas, monospace; }
+    pre { background: #0f172a; color: #e5e7eb; padding: 14px 16px; border-radius: 12px; overflow-x: auto; }
+    pre code { background: transparent; padding: 0; }
+    .footer { margin-top: 24px; color: var(--muted); font-size: 14px; }
+    @media print { body { background: #fff; } main { margin: 0; border: 0; max-width: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Reference 0040</div>
+    <h1>list builtins 清单</h1>
+    <p>用途：快速确认 list 操作 builtin 已全部实现并注入。</p>
+
+    <section class="card">
+      <h2>本课后应做到</h2>
+      <ul>
+        <li><code>len</code>、<code>head</code>、<code>tail</code>、<code>push</code> 均已实现</li>
+        <li>全部在 <code>eval_program()</code> 中注入</li>
+        <li>新增测试并通过</li>
+      </ul>
+    </section>
+
+    <h2>四个 builtin 速查</h2>
+    <pre><code>len(list) → Integer      // 返回长度
+head(list) → Value       // 返回第一个元素
+tail(list) → List        // 返回去掉第一个元素后的新 list
+push(list, x) → List     // 在后面追加 x</code></pre>
+
+    <h2>最小验证样例</h2>
+    <pre><code>len([1, 2, 3]) → 3
+head([1, 2, 3]) → 1
+tail([1, 2, 3]) → [2, 3]
+push([1, 2], 3) → [1, 2, 3]</code></pre>
+
+    <h2>最容易犯的错误</h2>
+    <ul>
+      <li>实现了 builtin 但忘记在 <code>eval_program()</code> 中注入</li>
+      <li><code>push</code> 的参数顺序写反</li>
+      <li><code>tail</code>/<code>head</code> 对空 list 没有防护</li>
+    </ul>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\reference\0040-list-builtins-checklist.html</code></p>
+  </main>
+</body>
+</html>

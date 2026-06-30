@@ -36,7 +36,10 @@ pub fn eval_expr(expr: &Expr, env: &HashMap<String, Value>) -> Value {
                 }
             }
         }
-        Expr::Ident(name) => env.get(name).expect("Can't get identifier").clone(),
+        Expr::Ident(name) => env
+            .get(name)
+            .unwrap_or_else(|| panic!("Can't get identifier: {name}"))
+            .clone(),
         Expr::Match { subject, arms } => {
             let s = eval_expr(subject, env);
             eval_expr(
@@ -138,9 +141,78 @@ fn print_builtin(args: Vec<Value>) -> Value {
     args[0].clone()
 }
 
-pub fn eval_program(program: &Program) {
+fn len_builtin(args: Vec<Value>) -> Value {
+    match &args[0] {
+        Value::List(l) => Value::Integer(l.len() as i64),
+        _ => {
+            log!("Expected list, get:{args:?}");
+            Value::Integer(0)
+        }
+    }
+}
+
+fn head_builtin(args: Vec<Value>) -> Value {
+    match &args[0] {
+        Value::List(l) => {
+            if l.len() >= 1 {
+                l[0].clone()
+            } else {
+                log!("List is empty");
+                Value::Integer(0)
+            }
+        }
+        _ => {
+            log!("Expected list, get:{args:?}");
+            Value::Integer(0)
+        }
+    }
+}
+
+fn tail_builtin(args: Vec<Value>) -> Value {
+    match &args[0] {
+        Value::List(l) => {
+            if l.len() >= 1 {
+                let mut tail = l.clone();
+                tail.remove(0);
+                Value::List(tail)
+            } else {
+                log!("List is empty");
+                Value::List(Vec::new())
+            }
+        }
+        _ => {
+            log!("Expected list, get:{args:?}");
+            Value::Integer(0)
+        }
+    }
+}
+
+fn push_builtin(args: Vec<Value>) -> Value {
+    match &args[0] {
+        Value::List(l) => {
+            let mut new_l = l.clone();
+            new_l.push(args[1].clone());
+            Value::List(new_l)
+        }
+        _ => {
+            log!("Expected list, get:{args:?}");
+            Value::Integer(0)
+        }
+    }
+}
+
+fn get_builtin_env() -> HashMap<String, Value> {
     let mut env = HashMap::new();
     env.insert("print".to_string(), Value::BuiltinFn(print_builtin));
+    env.insert("len".to_string(), Value::BuiltinFn(len_builtin));
+    env.insert("head".to_string(), Value::BuiltinFn(head_builtin));
+    env.insert("tail".to_string(), Value::BuiltinFn(tail_builtin));
+    env.insert("push".to_string(), Value::BuiltinFn(push_builtin));
+    env
+}
+
+pub fn eval_program(program: &Program) {
+    let mut env = get_builtin_env();
     eval_program_with_env(program, &mut env);
 }
 
@@ -257,6 +329,63 @@ mod tests {
             && matches!(
                 l[1],
                 Value::Integer(i) if i == 2
+            )
+        ));
+    }
+
+    #[test]
+    fn test_eval_list_builtin() {
+        let program = parse(
+            "let x = [1,2]; let y = head(x); let z = tail(x); let l = len(z); let new_x = push(x, 1);",
+        );
+        let env = &mut get_builtin_env();
+        eval_program_with_env(&program, env);
+
+        assert!(matches!(
+            env.get("x").expect("can't get x"),
+            Value::List(l)
+            if l.len() == 2
+            && matches!(
+                l[0],
+                Value::Integer(i) if i == 1
+            )
+            && matches!(
+                l[1],
+                Value::Integer(i) if i == 2
+            )
+        ));
+        assert!(matches!(
+            env.get("y").expect("can't get y"),
+            Value::Integer(1)
+        ));
+        assert!(matches!(
+            env.get("z").expect("can't get z"),
+            Value::List(l)
+            if l.len() == 1
+            && matches!(
+                l[0],
+                Value::Integer(2)
+            )
+        ));
+        assert!(matches!(
+            env.get("l").expect("can't get l"),
+            Value::Integer(1)
+        ));
+        assert!(matches!(
+            env.get("new_x").expect("can't get new_x"),
+            Value::List(l)
+            if l.len() == 3
+            && matches!(
+                l[0],
+                Value::Integer(i) if i == 1
+            )
+            && matches!(
+                l[1],
+                Value::Integer(i) if i == 2
+            )
+            && matches!(
+                l[2],
+                Value::Integer(i) if i == 1
             )
         ));
     }
