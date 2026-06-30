@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson 0038 · 解析 list 字面量</title>
+  <style>
+    :root {
+      --bg: #f5f7fb; --paper: #ffffff; --ink: #1f2937; --muted: #6b7280;
+      --accent: #2563eb; --accent-soft: #dbeafe; --line: #e5e7eb;
+      --good-bg: #ecfdf5; --good-line: #86efac; --good-text: #065f46;
+      --warn-bg: #fff7ed; --warn-line: #fdba74; --warn-text: #9a3412;
+      --code-bg: #0f172a; --code-fg: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.7; }
+    .page { max-width: 980px; margin: 32px auto; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 36px 48px 48px; box-shadow: 0 12px 28px rgba(15,23,42,0.06); }
+    .pill { display: inline-block; margin-bottom: 12px; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 700; }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 2.05rem; margin: 0 0 10px; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+    .box, .exercise { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin: 16px 0; background: #fbfdff; }
+    .goal { background: #eff6ff; }
+    code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; font-family: "Cascadia Code", Consolas, monospace; }
+    pre { background: var(--code-bg); color: var(--code-fg); border-radius: 12px; padding: 14px 16px; overflow-x: auto; border: 1px solid #1e293b; white-space: pre-wrap; }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    ul, ol { padding-left: 22px; }
+    .feedback { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); }
+    .feedback.good { display: block; background: var(--good-bg); border-color: var(--good-line); color: var(--good-text); }
+    .feedback.bad { display: block; background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-weight: 600; font-size: 0.96rem; }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    textarea { width: 100%; min-height: 120px; border: 1px solid var(--line); border-radius: 10px; padding: 12px; font: inherit; resize: vertical; }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) { .page { padding: 24px 18px 28px; } }
+    @media print { body { background: #fff; } .page { box-shadow: none; border: 0; margin: 0; max-width: none; } button, textarea { display: none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="pill">Lesson 0038</div>
+    <h1>解析 list 字面量</h1>
+    <p class="lede">scanner 已认识 <code>[</code> <code>]</code>。这一课只做 parser / AST：让 <code>[1, 2, 3]</code> 变成 list 字面量表达式节点。</p>
+
+    <section class="box goal">
+      <strong>为什么重要：</strong>
+      list 是自举所需的最基础数据结构。tokens 列表、AST 节点列表、函数参数列表——这些在自举实现里到处都需要。list 字面量是 entry point，parser 先认识它，evaluator 后续才能把它变成运行时值。
+    </section>
+
+    <section>
+      <h2>本课范围</h2>
+      <ul>
+        <li>在 AST 中新增 <code>Expr::List(Vec&lt;Expr&gt;)</code></li>
+        <li>在 <code>parse_primary()</code> 中新增 <code>Token::LBracket</code> 分支</li>
+        <li>解析逗号分隔的元素列表，支持空 list <code>[]</code></li>
+        <li>新增 parser / AST 测试</li>
+      </ul>
+      <p>这一课<strong>不做</strong>：</p>
+      <ul>
+        <li>不做 evaluator</li>
+        <li>不做 <code>Value::List</code></li>
+        <li>不做 list 操作 builtin</li>
+        <li>不改 scanner</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>这节课真正新增的知识点</h2>
+      <p>list 字面量是一个 prefix 结构——看到 <code>LBracket</code> 后进入独立的解析路径，和 <code>Token::Fn</code>、<code>Token::Match</code> 的模式一样。</p>
+      <p>解析逻辑和函数实参列表极为相似：逗号分隔的表达式序列，以右定界符结束。不同之处在于 list 允许空列表 <code>[]</code>。</p>
+    </section>
+
+    <section>
+      <h2>推荐的最小实现方向</h2>
+      <ol>
+        <li>在 <code>Expr</code> 中加入 <code>List(Vec&lt;Expr&gt;)</code></li>
+        <li>在 <code>parse_primary()</code> 中新增 <code>Token::LBracket</code> 分支</li>
+        <li>若下一个 token 是 <code>RBracket</code> → 空 list</li>
+        <li>否则循环解析逗号分隔的表达式，直到遇到 <code>RBracket</code></li>
+        <li>新增测试</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>目标输入 / AST 结构</h2>
+      <pre><code>输入:
+[1, 2, 3]
+
+目标 AST:
+Expr::List([
+    Expr::Number(1),
+    Expr::Number(2),
+    Expr::Number(3),
+])</code></pre>
+      <pre><code>输入:
+[]
+
+目标 AST:
+Expr::List([])</code></pre>
+      <pre><code>输入:
+["hello", 42, true]
+
+目标 AST:
+Expr::List([
+    Expr::String("hello"),
+    Expr::Number(42),
+    Expr::Boolean(true),
+])</code></pre>
+    </section>
+
+    <section class="exercise">
+      <h2>互动检查：list 解析和函数实参解析有什么相同和不同？</h2>
+      <div>
+        <label><input type="radio" name="quiz1" value="a" /> A. 完全相同——都是逗号分隔的表达式列表</label><br />
+        <label><input type="radio" name="quiz1" value="b" /> B. 都是逗号分隔的表达式序列，定界符不同（<code>[]</code> vs <code>()</code>），但都允许空序列。最大的不同是：list 是一个独立表达式节点（<code>Expr::List</code>），而函数实参是 <code>Expr::Call</code> 的一部分</label><br />
+        <label><input type="radio" name="quiz1" value="c" /> C. 完全不同</label>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="button" onclick="checkQuiz1()">检查答案</button>
+        <button class="secondary" type="button" onclick="resetQuiz1()">重做</button>
+      </div>
+      <div id="feedback-1" class="feedback"></div>
+    </section>
+
+    <section class="box">
+      <h2>完成标准</h2>
+      <ul>
+        <li><code>Expr::List(Vec&lt;Expr&gt;)</code> 已加入 AST</li>
+        <li>parser 已支持 <code>[elem, ...]</code> 和空 list <code>[]</code></li>
+        <li>元素可以是任意表达式（数字、字符串、布尔、函数字面量等）</li>
+        <li>新增 parser / AST 测试并通过</li>
+        <li>scanner / evaluator 暂时不改</li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <strong>提醒：</strong>
+      这节课的胜利条件是 <code>[1, 2, 3]</code> 被解析为 <code>Expr::List([...])</code>。
+    </section>
+
+    <section class="box">
+      <strong>有疑问？</strong>
+      随时向 agent 提问。list 解析和函数实参解析几乎一样，有疑问可以直接参考已有的 <code>Expr::Call</code> 实参解析写法。
+    </section>
+
+    <p class="footer">打开方式（PowerShell）：<code>start .\lessons\0038-parse-list-literals.html</code></p>
+  </main>
+
+  <script>
+    function setFeedback(id, ok, html) {
+      const el = document.getElementById(id);
+      el.className = 'feedback ' + (ok ? 'good' : 'bad');
+      el.innerHTML = html;
+    }
+    function clearFeedback(id) {
+      const el = document.getElementById(id);
+      el.className = 'feedback';
+      el.innerHTML = '';
+    }
+    function checkQuiz1() {
+      const answer = document.querySelector('input[name="quiz1"]:checked');
+      if (!answer) { setFeedback('feedback-1', false, '<strong>先选一个答案。</strong>'); return; }
+      if (answer.value === 'b') {
+        setFeedback('feedback-1', true, '<strong>正确。</strong> 解析逻辑几乎一样，但 AST 角色不同。');
+      } else {
+        setFeedback('feedback-1', false, '<strong>不对。</strong> 关键是定界符和 AST 节点角色不同。');
+      }
+    }
+    function resetQuiz1() {
+      document.querySelectorAll('input[name="quiz1"]').forEach((i) => { i.checked = false; });
+      clearFeedback('feedback-1');
+    }
+  </script>
+</body>
+</html>

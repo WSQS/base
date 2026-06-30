@@ -123,6 +123,22 @@ fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
                 body: Box::new(body),
             }
         }
+        Token::LBracket => {
+            let mut t_n = tokens.index(*i);
+            let list = &mut Vec::new();
+            while !matches!(t_n, Token::RBracket) {
+                list.push(parse_expr(tokens, i));
+                t_n = tokens.index(*i);
+                if matches!(t_n, Token::Comma) {
+                    *i += 1;
+                    t_n = tokens.index(*i);
+                } else if !matches!(t_n, Token::RBracket) {
+                    log!("Expected Comma or Right Bracket, but get{t_n:?}")
+                }
+            }
+            *i += 1;
+            Expr::List(list.to_vec())
+        }
         _ => {
             log!("invalid token:{t:?}");
             *i -= 1;
@@ -280,11 +296,13 @@ mod tests {
                 },
             } if name == "x" && matches!(left.as_ref(), Expr::Number(1)) && matches!(right.as_ref(), Expr::Number(2))
         ));
-        assert!(matches!(&program.stmts[1],Stmt::Expr { expr: Expr::Call { func, args } }
-            if matches!(func.as_ref(), Expr::Ident(s) if s == "print")
-            && args.len() == 1
-            && matches!(&args[0], Expr::Ident(x) if x == "x")
-        ));
+        assert!(
+            matches!(&program.stmts[1],Stmt::Expr { expr: Expr::Call { func, args } }
+                if matches!(func.as_ref(), Expr::Ident(s) if s == "print")
+                && args.len() == 1
+                && matches!(&args[0], Expr::Ident(x) if x == "x")
+            )
+        );
     }
 
     #[test]
@@ -384,8 +402,7 @@ mod tests {
                 expr: Expr::Call { func, args },
             } if matches!(func.as_ref(), Expr::Ident(s) if s == "print")
             && args.len() == 1
-            && matches!(&args[0], Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::EqualEqual) && matches!(right.as_ref(),Expr::Number(2))))
-        );
+            && matches!(&args[0], Expr::Binary { left, op, right } if matches!(left.as_ref(),Expr::Number(1)) && matches!(op,Token::EqualEqual) && matches!(right.as_ref(),Expr::Number(2)))));
     }
 
     #[test]
@@ -401,8 +418,7 @@ mod tests {
                     && matches!(op,Token::Star)
                     && matches!(right.as_ref(),Expr::Number(2)))
                 && matches!(op, Token::EqualEqual)
-                && matches!(right.as_ref(), Expr::Number(2))))
-        );
+                && matches!(right.as_ref(), Expr::Number(2)))));
     }
 
     #[test]
@@ -468,6 +484,62 @@ mod tests {
                 && matches!(
                     &args[0],
                     Expr::Ident(s) if s == "x")
+            )
+        ));
+    }
+
+    #[test]
+    fn test_parse_list_empty() {
+        let program = parse("let y = [];");
+        assert!(matches!(
+            &program.stmts[0],
+            Stmt::Let { name, expr }
+            if name == "y"
+            && matches!(
+                expr,
+                Expr::List(l) if l.len() == 0
+            )
+        ));
+    }
+
+    #[test]
+    fn test_parse_list_one() {
+        let program = parse("let y = [1];");
+        assert!(matches!(
+            &program.stmts[0],
+            Stmt::Let { name, expr }
+            if name == "y"
+            && matches!(
+                expr,
+                Expr::List(l)
+                if l.len() == 1
+                && matches!(
+                    l[0],
+                    Expr::Number(i) if i == 1
+                )
+            )
+        ));
+    }
+
+    #[test]
+    fn test_parse_list_two() {
+        let program = parse("let y = [1, 2];");
+        assert!(matches!(
+            &program.stmts[0],
+            Stmt::Let { name, expr }
+            if name == "y"
+            && matches!(
+                expr,
+                Expr::List(l)
+                if l.len() == 2
+                && matches!(
+                    l[0],
+                    Expr::Number(i) if i == 1
+                )
+                && matches!(
+                    l[1],
+                    Expr::Number(i) if i == 2
+                )
             )
         ));
     }
