@@ -14,7 +14,7 @@ fn parse_primary(tokens: &Vec<Token>, i: &mut usize) -> Expr {
         Token::Ident(name) => Expr::Ident(name.clone()),
         Token::LParen => {
             let e = parse_expr(tokens, i);
-            let t_n = tokens.index(*i + 1);
+            let t_n = tokens.index(*i);
             if matches!(t_n, Token::RParen) {
                 *i += 1
             } else {

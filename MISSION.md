@@ -50,3 +50,10 @@
 - 现在先不追求工业级优化器、JIT 或完整编译器工具链
 - 现在先不追求设计一门大而全的通用编程语言
 - Phase 4 之前不做完整类型系统（HM 推导、泛型、trait 等）
+
+## Known Issues & Future Improvements
+
+以下问题已确认，暂不影响 Phase 2 推进，留待后续版本处理：
+
+- **parser 日志噪音**：`parse_expr` 在非语句上下文（match arm body、fn body、list 元素、函数实参）中遇到非分号 token 时会 log `Expected semicolon`，不影响结果但干扰终端输出。需让 `parse_expr` 的终止条件更宽松，或拆出不分号检查的内部版本。
+- **静态作用域 / 闭包环境捕获**：当前 `Value::Fn` 不捕获定义时的环境，函数调用时用 `env.clone()` 取得的是调用时环境，实质上为动态作用域。递归能工作是因为被递归函数在全局环境中恰好可见。需将 `Value::Fn` 改为存储定义时捕获的环境，调用时基于捕获环境创建局部作用域。
