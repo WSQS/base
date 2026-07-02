@@ -389,4 +389,15 @@ mod tests {
             )
         ));
     }
+
+    #[test]
+    fn test_eval_recursive() {
+        let program = parse("let f = fn(x){match(x){1=>1,_=>f(x-1)*x}};let y = f(5);");
+        let env = &mut HashMap::new();
+        eval_program_with_env(&program, env);
+        assert!(matches!(
+            env.get("y").expect("can't get y"),
+            Value::Integer(i) if *i == 120
+        ));
+    }
 }
